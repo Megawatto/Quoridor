@@ -72,8 +72,8 @@ public class MainFrame extends JFrame {
         this.remove(this.port);
         this.remove(this.login);
         this.remove(this.password);
-        this.gameBoard = new GameBoard(this.login.getText(), connector);
         this.gameMenu = new GameMenu(this.login.getText());
+        this.gameBoard = new GameBoard(this.login.getText(), connector, gameMenu);
         gameMenu.setConnector(this.connector);
         this.add(gameBoard);
         this.add(gameMenu);

@@ -12,6 +12,7 @@ public class GameMenu extends JPanel {
 
     private final String LOGIN;
     private Connector connector;
+    private String status = "START GAME";
 
     public GameMenu(String LOGIN) {
         this.LOGIN = LOGIN;
@@ -24,7 +25,7 @@ public class GameMenu extends JPanel {
         super.paint(g);
         g.setFont(new Font("Verdana",Font.PLAIN, 14));
         g.drawString("<<< " + LOGIN + " >>>",5,15);
-        g.drawString("STEP",5,30);
+        g.drawString(status,5,30);
 
     }
 
@@ -35,5 +36,10 @@ public class GameMenu extends JPanel {
 
     public void setConnector(Connector connector) {
         this.connector = connector;
+    }
+
+    public void updateStatus(String status){
+        this.status = status;
+        repaint();
     }
 }

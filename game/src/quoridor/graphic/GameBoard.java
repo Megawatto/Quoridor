@@ -25,6 +25,7 @@ public final class GameBoard extends JPanel {
     private final String LOGIN;
     private final String TYPE_PLAYER = "player";
     private final String TYPE_WALL = "wall";
+    private final GameMenu gameMenu;
 
     private int startWallX;
     private int startWallY;
@@ -32,7 +33,8 @@ public final class GameBoard extends JPanel {
     private int endWallY;
     private boolean active;
 
-    public GameBoard(final String LOGIN, final Connector connector) throws IOException, ParseException {
+    public GameBoard(final String LOGIN, final Connector connector, final GameMenu gameMenu) throws IOException, ParseException {
+        this.gameMenu = gameMenu;
         this.gameObjs = connector.getGameObj();
         this.LOGIN = LOGIN;
         this.connector = connector;
@@ -44,6 +46,7 @@ public final class GameBoard extends JPanel {
                 try {
                     while (true) {
                         String msg = connector.getStatus();
+                        gameMenu.updateStatus(msg);
                         if (msg.equals("MOVE")) {
                             break;
                         }
@@ -101,7 +104,9 @@ public final class GameBoard extends JPanel {
                             connector.sendPosition(nextStep);
                             gameObjs = connector.getGameObj();
                         } catch (IOException | ParseException e1) {
+                            gameMenu.updateStatus("invalid step");
                             e1.printStackTrace();
+                            return;
                         }
                         repaint();
                         active = false;
@@ -144,20 +149,24 @@ public final class GameBoard extends JPanel {
                 g.drawLine(startWallX, startWallY, endWallX, endWallY);
             }
         }
-        for (GameObj gameObj : gameObjs) {
-            if (gameObj.getType().equals(TYPE_PLAYER)) {
-                if (gameObj.getLogin().equals(LOGIN)) {
-                    g.setColor(Color.orange);
-                    g.fillOval(gameObj.getX() * SIZE_CELL, gameObj.getY() * SIZE_CELL, SIZE_CELL, SIZE_CELL);
-                } else {
-                    g.setColor(Color.blue);
-                    g.fillOval(gameObj.getX() * SIZE_CELL, gameObj.getY() * SIZE_CELL, SIZE_CELL, SIZE_CELL);
+        try {
+            for (GameObj gameObj : gameObjs) {
+                if (gameObj.getType().equals(TYPE_PLAYER)) {
+                    if (gameObj.getLogin().equals(LOGIN)) {
+                        g.setColor(Color.blue);
+                        g.fillOval(gameObj.getX() * SIZE_CELL, gameObj.getY() * SIZE_CELL, SIZE_CELL, SIZE_CELL);
+                    } else {
+                        g.setColor(Color.red);
+                        g.fillOval(gameObj.getX() * SIZE_CELL, gameObj.getY() * SIZE_CELL, SIZE_CELL, SIZE_CELL);
+                    }
+                }
+                if (gameObj.getType().equals(TYPE_WALL)) {
+                    g.setColor(Color.green);
+                    g.drawLine(gameObj.getX() * SIZE_CELL, gameObj.getY() * SIZE_CELL, gameObj.getX2() * SIZE_CELL, gameObj.getY2() * SIZE_CELL);
                 }
             }
-            if (gameObj.getType().equals(TYPE_WALL)) {
-                g.setColor(Color.red);
-                g.drawLine(gameObj.getX() * SIZE_CELL, gameObj.getY() * SIZE_CELL, gameObj.getX2() * SIZE_CELL, gameObj.getY2() * SIZE_CELL);
-            }
+        } catch (NullPointerException e) {
+            e.printStackTrace();
         }
 
 

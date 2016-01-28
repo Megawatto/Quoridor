@@ -1,11 +1,15 @@
 package server.logic;
 
+import com.j256.ormlite.dao.Dao;
 import org.codehaus.jackson.map.ObjectMapper;
+import server.domain.GameObjModel;
+import server.domain.PlayerModel;
 import server.model.DBlayer;
 import server.model.GameObj;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -18,8 +22,24 @@ public class GameUtils {
         return mapper.writeValueAsString(gameObjList);
     }
 
-    public static boolean checkStep(GameObj nextStepObj, int roomId) throws SQLException {
-//        List<GameObj> gameObjList = DBlayer.getGameObjList(roomId);
+    public static boolean checkStep(GameObj nextStepObj, int roomId, String login) throws SQLException {
+
+
+        List<GameObj> gameObjList = DBlayer.getGameObjList(roomId);
+        GameObj player = null;
+        GameObj opponent = null;
+        List<GameObj> walls = new ArrayList<>();
+        for (GameObj gameObj : gameObjList) {
+            if (gameObj.getLogin().equals(login)&& gameObj.getType().equals("player") ) {
+                player = gameObj;
+            }
+//            opponent = !gameObj.getLogin().equals(login) ? gameObj : null;
+            if (gameObj.getType().equals("wall")) walls.add(gameObj);
+        }
+
+        assert player != null;
+        return (Math.abs(player.getX() - nextStepObj.getX()) == 1 && Math.abs(player.getY() - nextStepObj.getY()) == 0)
+                || (Math.abs(player.getX() - nextStepObj.getX()) == 0 && Math.abs(player.getY() - nextStepObj.getY()) == 1);
 
 //        if (nextStepObj.getType().equals("player")) {
 //            for (GameObj oldObj : gameObjList) {
@@ -38,6 +58,5 @@ public class GameUtils {
 //        if (nextStepObj.getType().equals("wall")){
 //
 //        }
-        return true;
     }
 }

@@ -38,7 +38,8 @@ public class ServerQuoridor {
             while (true) {
                 System.out.println("Wait");
                 Socket socket = serverSocket.accept();
-                if (sessions.size() > 4) {
+                socket.setSoTimeout(30000);
+                if (sessions.size() > 10) {
                     break;
                 } else {
                     System.out.println("Connect " + socket);

@@ -35,6 +35,7 @@ public class Connector {
         this.in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
         this.login = login;
         this.password = password;
+        conn.setSoTimeout(10000);
         login();
     }
 
@@ -52,7 +53,7 @@ public class Connector {
 
     }
 
-    public void sendPosition(GameObj gameObj) throws IOException {
+    public void sendPosition(GameObj gameObj) throws IOException, ParseException {
         object = new JSONObject();
         object.put("msg_type", "move");
         object.put("type", gameObj.getType());
@@ -61,6 +62,13 @@ public class Connector {
         object.put("x2", gameObj.getX2());
         object.put("y2", gameObj.getY2());
         sendMsg(object);
+        JSONParser parser = new JSONParser();
+        System.out.println(msg);
+        msg = in.readLine();
+        object = (JSONObject) parser.parse(msg);
+        if (object.get("status").equals("ERROR")) {
+            throw new IOException();
+        }
     }
 
     public List<GameObj> getGameObj() throws IOException, ParseException {
@@ -80,21 +88,21 @@ public class Connector {
 
     public void login() throws IOException {
         object = new JSONObject();
-        object.put("msg_type","login");
+        object.put("msg_type", "login");
         object.put("login", this.login);
         object.put("password", this.password);
         sendMsg(object);
         object = new JSONObject();
-        object.put("msg_type","start");
+        object.put("msg_type", "start");
 //        TODO переделать этот бред на асинхронный вызов
         while (true) {
             try {
                 sendMsg(object);
-                if (in.readLine().equals("start")){
+                if (in.readLine().equals("start")) {
                     break;
                 }
                 System.out.println("WAIT START");
-                Thread.sleep(1000);
+                Thread.sleep(5000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

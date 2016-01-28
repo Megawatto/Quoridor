@@ -14,7 +14,7 @@ public class GameObjModel {
     @DatabaseField(generatedId = true)
     private Integer id;
 
-    @DatabaseField(columnName = "room_id" ,foreign = true)
+    @DatabaseField(columnName = "room_id", foreign = true)
     private RoomModel roomId;
 
     @DatabaseField(columnName = "player_login", foreign = true)
@@ -38,11 +38,20 @@ public class GameObjModel {
     public GameObjModel() {
     }
 
-    public GameObjModel(RoomModel roomId, PlayerModel playerLogin,GameObj obj) {
+    public GameObjModel(RoomModel roomId, PlayerModel playerLogin, GameObj obj) {
         this.roomId = roomId;
         this.playerLogin = playerLogin;
         setObj(obj);
+    }
 
+    public GameObjModel(RoomModel roomId, PlayerModel playerLogin, String type, Integer x, Integer y, Integer x2, Integer y2) {
+        this.roomId = roomId;
+        this.playerLogin = playerLogin;
+        this.type = type;
+        this.x = x;
+        this.x2 = x2;
+        this.y = y;
+        this.y2 = y2;
     }
 
     public Integer getId() {

@@ -1,10 +1,7 @@
 package server.model;
 
-import org.codehaus.jackson.annotate.JsonIgnore;
 import org.json.simple.JSONObject;
 import server.domain.GameObjModel;
-
-import java.util.List;
 
 /**
  * Created by Valera on 26.01.2016.
@@ -30,6 +27,7 @@ public class GameObj {
     }
 
     public GameObj(GameObjModel plObj) {
+        this.login = plObj.getPlayerLogin().getLogin();
         this.type = plObj.getType();
         this.x = plObj.getX();
         this.y = plObj.getY();
