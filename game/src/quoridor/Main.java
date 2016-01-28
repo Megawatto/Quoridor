@@ -16,7 +16,7 @@ public class Main {
             @Override
             public void run() {
                 try {
-                    new MainFrame("title");
+                    new MainFrame("Quoridor game");
                 } catch (InterruptedException | IOException | ParseException e) {
                     e.printStackTrace();
                 }

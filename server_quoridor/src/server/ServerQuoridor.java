@@ -15,10 +15,23 @@ import java.util.List;
 
 public class ServerQuoridor {
     public static void main(String[] args) {
+        int port = 8080;
+
         try {
+            switch (args.length) {
+                case 1:
+                    port = Integer.parseInt(args[0]);
+                    System.out.println("set port = " + port);
+                    break;
+                case 2:
+                    break;
+                case 3:
+                    break;
+            }
+
             System.out.println("Start Server");
             List<Session> sessions = new ArrayList<Session>();
-            ServerSocket serverSocket = new ServerSocket(8080);
+            ServerSocket serverSocket = new ServerSocket(port);
             DBlayer.createConnectFromDB();
             DBlayer.clearData();
 

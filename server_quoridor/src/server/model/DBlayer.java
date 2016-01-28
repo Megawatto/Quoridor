@@ -1,8 +1,18 @@
 package server.model;
 
+import com.j256.ormlite.dao.Dao;
+import com.j256.ormlite.dao.DaoManager;
+import com.j256.ormlite.jdbc.JdbcConnectionSource;
+import com.j256.ormlite.support.ConnectionSource;
 import org.sqlite.SQLiteConfig;
+import org.sqlite.SQLiteDataSource;
+import server.domain.GameModel;
+import server.domain.GameObjModel;
+import server.domain.PlayerModel;
+import server.domain.RoomModel;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,6 +22,11 @@ import java.util.List;
 public class DBlayer {
 
     private static Connection connection;
+    private static ConnectionSource connectionSource;
+    private static Dao<RoomModel, Integer> rooms;
+    private static Dao<GameModel, Integer> games;
+    private static Dao<PlayerModel, String> players;
+    private static Dao<GameObjModel, Integer> gameObjs;
 
     public DBlayer() {
 
@@ -23,7 +38,14 @@ public class DBlayer {
             Class.forName("org.sqlite.JDBC");
             SQLiteConfig config = new SQLiteConfig();
             config.enforceForeignKeys(true);
-            connection = DriverManager.getConnection("jdbc:sqlite:C:/Users/Valera/IdeaProjects/Quoridor/server_quoridor/test.db", config.toProperties());
+            SQLiteDataSource sqLiteDataSource = new SQLiteDataSource(config);
+
+            connectionSource = new JdbcConnectionSource("jdbc:sqlite:C:/Users/Valera/IdeaProjects/Quoridor/server_quoridor/test.db");
+
+            rooms = DaoManager.createDao(connectionSource, RoomModel.class);
+            games = DaoManager.createDao(connectionSource, GameModel.class);
+            players = DaoManager.createDao(connectionSource, PlayerModel.class);
+            gameObjs = DaoManager.createDao(connectionSource, GameObjModel.class);
         } catch (Exception e) {
             System.err.println(e.getClass().getName() + ": " + e.getMessage());
             System.exit(0);
@@ -32,35 +54,26 @@ public class DBlayer {
     }
 
     public static boolean authorization(String login, String password) {
-        PreparedStatement ps;
         try {
-            ps = connection.prepareStatement("SELECT * FROM player WHERE login = (?) and password = (?)");
-            ps.setString(1, login);
-            ps.setString(2, password);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                if (rs.getBoolean("active")) {
-                    ps.close();
-                    return false;
-                } else {
-                    ps = connection.prepareStatement("UPDATE player SET active = 1 WHERE login = ?");
-                    ps.setString(1, login);
-                    ps.execute();
-                }
-                System.out.println("ACCESS SUCCESS >>> " + login);
+            Dao<PlayerModel, String> players = DaoManager.createDao(connectionSource, PlayerModel.class);
+            players.queryForEq("login", login);
+            PlayerModel player = players.queryBuilder().where().eq("login", login).queryForFirst();
+            if (player == null) {
+                players.create(new PlayerModel(login, password, true));
+                System.out.println("CREATE NEW PLAYER >>> " + login);
                 return true;
             } else {
-                ps.close();
+                if (player.getPassword().equals(password) && !player.isActive()) {
+                    player.setActive(true);
+                    players.update(player);
+                    System.out.println("ACCESS SUCCESS >>> " + login);
+                    return true;
+                } else {
+                    return false;
+                }
             }
-            ps = connection.prepareStatement("INSERT INTO player(login,password , active) VALUES (?,?,0)");
-            ps.setString(1, login);
-            ps.setString(2, password);
-            ps.execute();
-            ps.close();
-            System.out.println("CREATE USER " + login);
-            return true;
         } catch (SQLException e) {
-            System.out.println("ACCESS DENIED");
+            System.out.println("ERROR LOGIN");
             e.printStackTrace();
             return false;
         }
@@ -68,58 +81,26 @@ public class DBlayer {
 
 
     public static int findRoom(String login) throws SQLException {
-        PreparedStatement ps;
-        int roomId;
-        ps = connection.prepareStatement("SELECT * FROM room WHERE count_pl < 2");
-        ResultSet rs = ps.executeQuery();
-        if (rs.next()) {
-            roomId = rs.getInt("id");
-            ps = connection.prepareStatement("INSERT INTO game (room_id, player_login,status) VALUES (?,?,?)");
-            ps.setInt(1, roomId);
-            ps.setString(2, login);
-            ps.setString(3, (rs.getInt("count_pl") == 0) ? "MOVE" : "WAIT");
-            ps.execute();
-            ps.close();
-            ps = connection.prepareStatement("UPDATE room SET count_pl = (SELECT COUNT(*) FROM game WHERE game.room_id = room.id)");
-            ps.execute();
-            ps.close();
-            System.out.println("FIND ROOM " + roomId);
-            ps = connection.prepareStatement("SELECT room.count_pl FROM room WHERE room.id = ?");
-            ps.setInt(1, roomId);
-            rs = ps.executeQuery();
-            if (rs.getInt("count_pl") == 2) {
-                ps.close();
-                ps = connection.prepareStatement("UPDATE room SET status = 'START' WHERE id = ?");
-                ps.setInt(1, roomId);
-                ps.execute();
-                ps.close();
-                System.out.println("START_GAME");
-            }
-            return roomId;
-        } else {
-            ps.close();
-            ps = connection.prepareStatement("INSERT INTO room (title) VALUES (?)");
-            ps.setString(1, "test");
-            ps.execute();
-            ps.close();
-            System.out.println("CREATE NEW ROOM");
-            return findRoom(login);
+        RoomModel room = rooms.queryBuilder().where().lt("count_pl", 2).queryForFirst();
+        if (room == null) {
+            rooms.create(new RoomModel("test", "WAIT"));
+            room = rooms.queryBuilder().where().lt("count_pl", 2).queryForFirst();
+            System.out.println("CREATE NEW ROOM ID =" + room.getId());
         }
+        games.create(new GameModel(room, players.queryForId(login), "WAIT"));
+        room.setCountPlayer(games.queryForEq("room_id", room.getId()).size());
+        if (room.getCountPlayer() == 2) {
+            room.setStatus("START");
+        }
+        rooms.update(room);
+        return room.getId();
     }
 
     public static void closeGame(int roomId, String login) {
-        PreparedStatement ps;
         try {
-            ps = connection.prepareStatement("DELETE FROM game WHERE room_id = ? and player_login = ?");
-            ps.setInt(1, roomId);
-            ps.setString(2, login);
-            ps.execute();
-            ps.close();
-            ps = connection.prepareStatement("UPDATE room SET status = 'WAIT' , count_pl = (SELECT COUNT(*) FROM game WHERE game.room_id = room.id)");
-            ps.execute();
-            ps = connection.prepareStatement("UPDATE player SET active = 0 WHERE login = ?");
-            ps.setString(1, login);
-            ps.execute();
+            games.deleteBuilder().where().eq("room_id", roomId).and().eq("player_login", login);
+            rooms.updateBuilder().updateColumnValue("status", "WAIT").updateColumnValue("count_pl", 0);
+            players.updateBuilder().updateColumnValue("active", false).where().eq("login", login);
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -127,76 +108,36 @@ public class DBlayer {
     }
 
     public synchronized static boolean statusRoom(int roomId) throws SQLException {
-        PreparedStatement ps;
-        ps = connection.prepareStatement("SELECT room.status, room.count_pl FROM room WHERE room.id = ?");
-        ps.setInt(1, roomId);
-        ResultSet rs = ps.executeQuery();
-        boolean result = rs.getString("status").equals("START");
-        ps.close();
-        return result;
+        RoomModel room = rooms.queryForId(roomId);
+        return room.getStatus().equals("START");
     }
 
     public static void setPositions(int roomId, String login, GameObj gameObj) throws SQLException {
-        PreparedStatement ps;
+
         if (gameObj.getType().equals("player")) {
-            ps = connection.prepareStatement("UPDATE game_obj SET x = ? , y = ? WHERE room_id = ? and player_login = ? and type = 'player'");
-            ps.setInt(1, gameObj.getX());
-            ps.setInt(2, gameObj.getY());
-            ps.setInt(3, roomId);
-            ps.setString(4, login);
-            ps.execute();
-            ps.close();
+            GameObjModel newGameObj = gameObjs.updateBuilder()
+                    .where().eq("room_id", roomId).and().eq("player_login", login).and().eq("type", "player").queryForFirst();
+            newGameObj.setObj(gameObj);
+            gameObjs.update(newGameObj);
         } else {
-            ps = connection.prepareStatement("INSERT INTO game_obj(room_id, player_login, type, x, y, x2, y2) VALUES (?,?,?,?,?,?,?)");
-            ps.setInt(1, roomId);
-            ps.setString(2, login);
-            ps.setString(3, gameObj.getType());
-            ps.setInt(4, gameObj.getX());
-            ps.setInt(5, gameObj.getY());
-            ps.setInt(6, gameObj.getX2());
-            ps.setInt(7, gameObj.getY2());
-            ps.execute();
-            ps.close();
+            gameObjs.create(new GameObjModel(rooms.queryForId(roomId), players.queryForId(login), gameObj));
         }
-        ps = connection.prepareStatement("UPDATE game SET status = 'WAIT' WHERE room_id= ? and player_login = ?");
-        ps.setInt(1, roomId);
-        ps.setString(2, login);
-        ps.execute();
-        ps = connection.prepareStatement("UPDATE game SET status = 'MOVE' WHERE room_id= ? and player_login != ?");
-        ps.setInt(1, roomId);
-        ps.setString(2, login);
-        ps.execute();
-        ps.close();
+        games.updateBuilder().updateColumnValue("status", "WAIT").where().eq("room_id", roomId).and().eq("player_login", login);
+        games.updateBuilder().updateColumnValue("status", "MOVE").where().eq("room_id", roomId).and().ne("player_login", login);
         System.out.println("UPDATE POSITON");
 
     }
 
     public static String getPlayerStatus(int roomId, String login) throws SQLException {
-        PreparedStatement ps;
-        ps = connection.prepareStatement("SELECT * FROM game WHERE room_id = ? and player_login =? ");
-        ps.setInt(1, roomId);
-        ps.setString(2, login);
-        ResultSet rs = ps.executeQuery();
-        return rs.getString("status");
+        return games.queryBuilder().where().eq("room_id", roomId).and().eq("player_login", login).queryForFirst().getStatus();
     }
 
     public static List<GameObj> getGameObjList(int roomId) throws SQLException {
-        PreparedStatement ps;
+        List<GameObjModel> plObj = gameObjs.queryForEq("room_id", roomId);
         List<GameObj> result = new ArrayList<>();
-        ps = connection.prepareStatement("SELECT * FROM game_obj WHERE room_id = ?");
-        ps.setInt(1, roomId);
-        ResultSet rs = ps.executeQuery();
-        while (rs.next()) {
-            GameObj gameObj = new GameObj();
-            gameObj.setLogin(rs.getString("player_login"));
-            gameObj.setType(rs.getString("type"));
-            gameObj.setX(rs.getInt("x"));
-            gameObj.setY(rs.getInt("y"));
-            gameObj.setX2(rs.getInt("x2"));
-            gameObj.setY2(rs.getInt("y2"));
-            result.add(gameObj);
+        for (GameObjModel gameObjModel : plObj) {
+            result.add(new GameObj(gameObjModel));
         }
-        ps.close();
         System.out.println(result);
         return result;
     }
