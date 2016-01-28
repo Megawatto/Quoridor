@@ -4,11 +4,8 @@ import org.json.simple.parser.ParseException;
 import quoridor.Connector;
 import quoridor.model.GameObj;
 
-import javax.swing.BorderFactory;
-import javax.swing.JPanel;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
@@ -33,11 +30,41 @@ public final class GameBoard extends JPanel {
     private int startWallY;
     private int endWallX;
     private int endWallY;
+    private boolean active;
 
     public GameBoard(final String LOGIN, final Connector connector) throws IOException, ParseException {
         this.gameObjs = connector.getGameObj();
         this.LOGIN = LOGIN;
         this.connector = connector;
+        this.active = connector.getStatus().equals("MOVE");
+
+        final Runnable getAsynStatus = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    while (true) {
+                        String msg = connector.getStatus();
+                        if (msg.equals("MOVE")) {
+                            break;
+                        }
+                        if (msg.equals("CLOSE")){
+                            closeParty();
+                        }
+                        System.out.println("WAIT STEP");
+                        Thread.sleep(1500);
+                    }
+                    active = true;
+                    gameObjs = connector.getGameObj();
+                    repaint();
+                } catch (InterruptedException | ParseException | IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+
+        if (!active) {
+            new Thread(getAsynStatus).start();
+        }
 
         setBackground(Color.WHITE);
         setBorder(BorderFactory.createLineBorder(Color.black));
@@ -64,37 +91,42 @@ public final class GameBoard extends JPanel {
             @Override
             public void mouseReleased(MouseEvent e) {
                 super.mouseReleased(e);
-                if (Math.abs(startWallX - e.getX()) <= 25 && Math.abs(startWallY - e.getY()) <= 25) {
-                    GameObj nextStep = new GameObj();
-                    nextStep.setType(TYPE_PLAYER);
-                    nextStep.setX(calcPositionX(e.getX()));
-                    nextStep.setY(calcPositionY(e.getY()));
-                    try {
-                        connector.sendPosition(nextStep);
-                        gameObjs = connector.getGameObj();
-                    } catch (IOException | ParseException e1) {
-                        e1.printStackTrace();
+                if (active) {
+                    if (Math.abs(startWallX - e.getX()) <= 25 && Math.abs(startWallY - e.getY()) <= 25) {
+                        GameObj nextStep = new GameObj();
+                        nextStep.setType(TYPE_PLAYER);
+                        nextStep.setX(calcPositionX(e.getX()));
+                        nextStep.setY(calcPositionY(e.getY()));
+                        try {
+                            connector.sendPosition(nextStep);
+                            gameObjs = connector.getGameObj();
+                        } catch (IOException | ParseException e1) {
+                            e1.printStackTrace();
+                        }
+                        repaint();
+                        active = false;
+                        new Thread(getAsynStatus).start();
+                    } else {
+                        endWallX = 0;
+                        endWallY = 0;
+                        GameObj nextStep = new GameObj();
+                        nextStep.setType(TYPE_WALL);
+                        nextStep.setX(calcPositionX(startWallX));
+                        nextStep.setY(calcPositionY(startWallY));
+                        nextStep.setX2(calcPositionX(e.getX()));
+                        nextStep.setY2(calcPositionX(e.getY()));
+                        try {
+                            connector.sendPosition(nextStep);
+                            gameObjs = connector.getGameObj();
+                        } catch (IOException | ParseException e1) {
+                            e1.printStackTrace();
+                        }
+                        repaint();
+                        active = false;
+                        new Thread(getAsynStatus).start();
                     }
-                    repaint();
-                    checkStatus();
-                } else {
-                    endWallX = 0;
-                    endWallY = 0;
-                    GameObj nextStep = new GameObj();
-                    nextStep.setType(TYPE_WALL);
-                    nextStep.setX(calcPositionX(startWallX));
-                    nextStep.setY(calcPositionY(startWallY));
-                    nextStep.setX2(calcPositionX(e.getX()));
-                    nextStep.setY2(calcPositionX(e.getY()));
-                    try {
-                        connector.sendPosition(nextStep);
-                        gameObjs = connector.getGameObj();
-                    } catch (IOException | ParseException e1) {
-                        e1.printStackTrace();
-                    }
-                    repaint();
-                    checkStatus();
                 }
+                System.out.println("LOCK");
             }
         });
     }
@@ -146,18 +178,10 @@ public final class GameBoard extends JPanel {
         return y;
     }
 
-    private void checkStatus()  {
-        try {
-            while (true) {
-                if (connector.getStatus().equals("MOVE")) {
-                    break;
-                }
-                System.out.println("WAIT STEP");
-                Thread.sleep(1000);
-            }
-        } catch (InterruptedException | ParseException | IOException e) {
-            e.printStackTrace();
-        }
+    private void closeParty(){
+        JOptionPane.showMessageDialog(new Frame(),"CLose Party","END GAME",JOptionPane.INFORMATION_MESSAGE);
+        connector.close();
+        System.exit(0);
     }
 
 }

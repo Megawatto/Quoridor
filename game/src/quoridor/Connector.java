@@ -44,6 +44,7 @@ public class Connector {
         sendMsg(object);
         msg = in.readLine();
         JSONParser parser = new JSONParser();
+        System.out.println(msg);
         Object result = parser.parse(msg);
         object = (JSONObject) result;
         System.out.println("response >>> " + (String) object.get("status"));
@@ -79,11 +80,13 @@ public class Connector {
 
     public void login() throws IOException {
         object = new JSONObject();
+        object.put("msg_type","login");
         object.put("login", this.login);
         object.put("password", this.password);
         sendMsg(object);
         object = new JSONObject();
         object.put("msg_type","start");
+//        TODO переделать этот бред на асинхронный вызов
         while (true) {
             try {
                 sendMsg(object);

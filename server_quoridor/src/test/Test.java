@@ -13,20 +13,26 @@ public class Test {
     static final String URL = "localhost";
     static final int PORT = 8080;
 
-    public static void main(String[] args) throws IOException {
-        JSONObject object = new JSONObject();
-        object.put("msg_type", "move");
-        object.put("type", "test");
-        object.put("x", 10);
-        object.put("y", 10);
-        object.put("x2", 10);
-        object.put("y2", 10);
-        System.out.println(object);
-        Socket cl1 = new Socket(URL, PORT);
-        BufferedReader in1 = new BufferedReader(new InputStreamReader(cl1.getInputStream()));
-        Socket cl2 = new Socket(URL, PORT);
-        BufferedReader in2 = new BufferedReader(new InputStreamReader(cl2.getInputStream()));
-
+    public static void main(String[] args) throws Throwable {
+//        JSONObject object = new JSONObject();
+//        object.put("msg_type", "move");
+//        object.put("type", "test");
+//        object.put("x", 10);
+//        object.put("y", 10);
+//        object.put("x2", 10);
+//        object.put("y2", 10);
+//        System.out.println(object);
+//        Socket cl1 = new Socket(URL, PORT);
+//        BufferedReader in1 = new BufferedReader(new InputStreamReader(cl1.getInputStream()));
+//        Socket cl2 = new Socket(URL, PORT);
+//        BufferedReader in2 = new BufferedReader(new InputStreamReader(cl2.getInputStream()));
+            try {
+                throw new Throwable("test");
+            } catch (RuntimeException e){
+                System.out.println("catch");
+            } finally {
+                System.out.println("fin");
+            }
 
     }
 }

@@ -32,19 +32,27 @@ public class DBlayer {
     }
 
     public static boolean authorization(String login, String password) {
-        PreparedStatement ps = null;
+        PreparedStatement ps;
         try {
             ps = connection.prepareStatement("SELECT * FROM player WHERE login = (?) and password = (?)");
             ps.setString(1, login);
             ps.setString(2, password);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
+                if (rs.getBoolean("active")) {
+                    ps.close();
+                    return false;
+                } else {
+                    ps = connection.prepareStatement("UPDATE player SET active = 1 WHERE login = ?");
+                    ps.setString(1, login);
+                    ps.execute();
+                }
                 System.out.println("ACCESS SUCCESS >>> " + login);
                 return true;
             } else {
                 ps.close();
             }
-            ps = connection.prepareStatement("INSERT INTO player VALUES (?,?)");
+            ps = connection.prepareStatement("INSERT INTO player(login,password , active) VALUES (?,?,0)");
             ps.setString(1, login);
             ps.setString(2, password);
             ps.execute();
@@ -53,6 +61,7 @@ public class DBlayer {
             return true;
         } catch (SQLException e) {
             System.out.println("ACCESS DENIED");
+            e.printStackTrace();
             return false;
         }
     }
@@ -68,7 +77,7 @@ public class DBlayer {
             ps = connection.prepareStatement("INSERT INTO game (room_id, player_login,status) VALUES (?,?,?)");
             ps.setInt(1, roomId);
             ps.setString(2, login);
-            ps.setString(3, (rs.getInt("count_pl") <= 1) ? "MOVE" : "WAIT");
+            ps.setString(3, (rs.getInt("count_pl") == 0) ? "MOVE" : "WAIT");
             ps.execute();
             ps.close();
             ps = connection.prepareStatement("UPDATE room SET count_pl = (SELECT COUNT(*) FROM game WHERE game.room_id = room.id)");
@@ -107,6 +116,9 @@ public class DBlayer {
             ps.execute();
             ps.close();
             ps = connection.prepareStatement("UPDATE room SET status = 'WAIT' , count_pl = (SELECT COUNT(*) FROM game WHERE game.room_id = room.id)");
+            ps.execute();
+            ps = connection.prepareStatement("UPDATE player SET active = 0 WHERE login = ?");
+            ps.setString(1, login);
             ps.execute();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -150,7 +162,6 @@ public class DBlayer {
         ps.setInt(1, roomId);
         ps.setString(2, login);
         ps.execute();
-        ps.close();
         ps = connection.prepareStatement("UPDATE game SET status = 'MOVE' WHERE room_id= ? and player_login != ?");
         ps.setInt(1, roomId);
         ps.setString(2, login);
