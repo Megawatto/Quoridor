@@ -24,7 +24,7 @@ public class Session extends Thread {
 
     private Socket socket;
     private static final Logger LOGGER = Logger.getLogger(Session.class.getName());
-//    TODO Переделать ид на объекты
+    //    TODO Переделать ид на объекты
     private RoomModel room;
     private String login;
     private String msg;
@@ -79,7 +79,7 @@ public class Session extends Thread {
                         break;
                     case "move":
                         System.out.println("SET POSITION > " + login);
-                        if (GameUtils.checkStep(new GameObj(object), room.getId(),login)) {
+                        if (GameUtils.checkStep(new GameObj(object), room.getId(), login)) {
                             DBlayer.setPositions(room.getId(), login, new GameObj(object));
                             out.println("{\"status\":\"OK\"}");
                             break;
@@ -92,7 +92,8 @@ public class Session extends Thread {
                         if (!DBlayer.statusRoom(room.getId())) {
                             response.put("status", "CLOSE");
                             out.println(response);
-                            throw new RuntimeException("Close party");
+                            LOGGER.info("CLOSE PARTY");
+                            break;
                         }
                         response.put("status", DBlayer.getPlayerStatus(room.getId(), login));
                         out.println(response);
@@ -102,7 +103,7 @@ public class Session extends Thread {
                         out.println(GameUtils.getGameObj(DBlayer.getGameObjList(room.getId())));
                         break;
                     default:
-                        System.out.println("invalid msg");
+                        LOGGER.info("invalid msg");
                 }
             }
             System.out.println("END");

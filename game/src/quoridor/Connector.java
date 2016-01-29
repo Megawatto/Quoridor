@@ -35,7 +35,7 @@ public class Connector {
         this.in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
         this.login = login;
         this.password = password;
-        conn.setSoTimeout(10000);
+        conn.setSoTimeout(300000);
         login();
     }
 
@@ -102,7 +102,7 @@ public class Connector {
                     break;
                 }
                 System.out.println("WAIT START");
-                Thread.sleep(5000);
+                Thread.sleep(3000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

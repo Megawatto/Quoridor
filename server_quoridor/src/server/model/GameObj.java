@@ -84,6 +84,22 @@ public class GameObj {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        GameObj gameObj = (GameObj) o;
+
+        if (x != gameObj.x) return false;
+        if (y != gameObj.y) return false;
+        if (x2 != gameObj.x2) return false;
+        if (y2 != gameObj.y2) return false;
+        if (!login.equals(gameObj.login)) return false;
+        return type.equals(gameObj.type);
+
+    }
+
+    @Override
     public String toString() {
         return "GameObj{" +
                 "login='" + login + '\'' +

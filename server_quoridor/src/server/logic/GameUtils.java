@@ -1,9 +1,6 @@
 package server.logic;
 
-import com.j256.ormlite.dao.Dao;
 import org.codehaus.jackson.map.ObjectMapper;
-import server.domain.GameObjModel;
-import server.domain.PlayerModel;
 import server.model.DBlayer;
 import server.model.GameObj;
 
@@ -30,16 +27,23 @@ public class GameUtils {
         GameObj opponent = null;
         List<GameObj> walls = new ArrayList<>();
         for (GameObj gameObj : gameObjList) {
-            if (gameObj.getLogin().equals(login)&& gameObj.getType().equals("player") ) {
+            if (gameObj.getLogin().equals(login) && gameObj.getType().equals("player")) {
                 player = gameObj;
             }
 //            opponent = !gameObj.getLogin().equals(login) ? gameObj : null;
             if (gameObj.getType().equals("wall")) walls.add(gameObj);
         }
 
-        assert player != null;
-        return (Math.abs(player.getX() - nextStepObj.getX()) == 1 && Math.abs(player.getY() - nextStepObj.getY()) == 0)
-                || (Math.abs(player.getX() - nextStepObj.getX()) == 0 && Math.abs(player.getY() - nextStepObj.getY()) == 1);
+        if (!nextStepObj.equals(player)) {
+            double result = (int) Math.sqrt(Math.pow(nextStepObj.getX() - nextStepObj.getX2(), 2) + (Math.pow(nextStepObj.getY() - nextStepObj.getY2(), 2)));
+            int checkPosX = Math.abs(nextStepObj.getX() - nextStepObj.getX2());
+            int checkPosY = Math.abs(nextStepObj.getY() - nextStepObj.getY2());
+            return result == 2 && (checkPosX == 0 && checkPosY == 2 || checkPosX == 2 && checkPosY == 0);
+        } else {
+            int checkPosX = Math.abs(player.getX() - nextStepObj.getX());
+            int checkPosY = Math.abs(player.getY() - nextStepObj.getY());
+            return checkPosX == 1 && checkPosY == 0 || checkPosX == 0 && checkPosY == 1;
+        }
 
 //        if (nextStepObj.getType().equals("player")) {
 //            for (GameObj oldObj : gameObjList) {

@@ -27,7 +27,6 @@ public class MainFrame extends JFrame {
 
     public MainFrame(String header) throws InterruptedException, IOException, ParseException {
         super(header);
-
         setLayout(new FlowLayout());
         setVisible(true);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -36,7 +35,7 @@ public class MainFrame extends JFrame {
             @Override
             public void windowClosing(WindowEvent e) {
                 super.windowClosing(e);
-                System.out.println(">>>");
+                System.out.println("CLose app");
                 if (connector != null){
                     connector.close();
                 }
