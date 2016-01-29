@@ -35,7 +35,7 @@ public class Session extends Thread {
     }
 
     public static Session createSession(Socket socket) {
-        System.out.println("New session");
+        LOGGER.info("New session " + socket);
         return new Session(socket);
     }
 
