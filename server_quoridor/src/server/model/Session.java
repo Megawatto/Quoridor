@@ -1,8 +1,7 @@
 package server.model;
 
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
+import org.codehaus.jackson.JsonParser;
+import org.codehaus.jackson.map.ObjectMapper;
 import server.domain.PlayerModel;
 import server.domain.RoomModel;
 import server.logic.GameUtils;
@@ -17,6 +16,8 @@ import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static server.model.TypeRequestMsg.valueOf;
+
 /**
  * Created by Valera on 22.01.2016.
  */
@@ -26,9 +27,8 @@ public class Session extends Thread {
     private static final Logger LOGGER = Logger.getLogger(Session.class.getName());
     //    TODO Переделать ид на объекты
     private RoomModel room;
-    private String login;
-    private String msg;
     private PlayerModel player;
+    private ResponseMsg response;
 
     public Session(Socket socket) {
         this.socket = socket;
@@ -42,80 +42,102 @@ public class Session extends Thread {
     @Override
     public void run() {
         super.run();
-        JSONParser parser = new JSONParser();
         LOGGER.info("Start Session " + this.getName());
         try {
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             PrintWriter out = new PrintWriter(new BufferedOutputStream(socket.getOutputStream()), true);
-
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(JsonParser.Feature.AUTO_CLOSE_SOURCE, false);
             while (true) {
                 System.out.println("WAIT MSG >>>");
-                msg = in.readLine();
-                if (msg == null || msg.equals("end")) {
+                RequestMsg request = mapper.readValue(in, RequestMsg.class);
+                if (request == null) {
+                    response = new ResponseMsg(TypeStatusMsg.ERROR, "invalid msg");
+                    out.println(mapper.writeValueAsString(response));
+                    LOGGER.info(response.toString());
                     socket.close();
                     break;
                 }
-                LOGGER.info(msg);
-                JSONObject object = (JSONObject) parser.parse(msg);
+                LOGGER.info(request.toString());
 
-                switch ((String) object.get("msg_type")) {
-                    case "login":
-                        login = (String) object.get("login");
-                        String password = (String) object.get("password");
+                switch (valueOf(request.getMsgType())) {
+                    case LOGIN:
+                        String login = request.getLogin();
+                        String password = request.getPassword();
                         this.player = login != null ? DBlayer.authorization(login, password) : null;
                         if (player == null) {
+                            response = new ResponseMsg(TypeStatusMsg.ERROR, "ACCESS DENIED");
+                            out.println(mapper.writeValueAsString(response));
+                            LOGGER.info(response.toString());
                             System.out.println("ACCESS DENIED");
                             throw new RuntimeException("ACCESS DENIED");
                         }
+                        response = new ResponseMsg(TypeStatusMsg.OK);
+                        out.println(mapper.writeValueAsString(response));
+                        LOGGER.info(response.toString());
                         room = DBlayer.findRoom(player);
                         break;
-                    case "start":
+                    case START:
+                        response = new ResponseMsg();
                         if (DBlayer.statusRoom(room.getId())) {
                             DBlayer.initGameObj(player, room);
-                            out.println("start");
+                            response.setStatus(TypeStatusMsg.START);
+                            out.println(mapper.writeValueAsString(response));
+                            LOGGER.info(response.toString());
                         } else {
-                            out.println("wait");
+                            response.setStatus(TypeStatusMsg.WAIT);
+                            out.println(mapper.writeValueAsString(response));
+                            LOGGER.info(response.toString());
                         }
                         break;
-                    case "move":
-                        System.out.println("SET POSITION > " + login);
-                        if (GameUtils.checkStep(new GameObj(object), room.getId(), login)) {
-                            DBlayer.setPositions(room.getId(), login, new GameObj(object));
-                            out.println("{\"status\":\"OK\"}");
+                    case MOVE:
+                        response = new ResponseMsg();
+                        System.out.println("SET POSITION > " + player.getLogin());
+                        if (GameUtils.checkStep(request.getGameObj(), room.getId(), player.getLogin())) {
+                            DBlayer.setPositions(room.getId(), player.getLogin(), request.getGameObj());
+                            response.setStatus(TypeStatusMsg.OK);
+                            out.println(mapper.writeValueAsString(response));
+                            LOGGER.info(response.toString());
                             break;
                         }
-                        out.println("{\"status\":\"ERROR\"}");
+                        response.setStatus(TypeStatusMsg.ERROR);
+                        response.setMsg("invalid step");
+                        out.println(mapper.writeValueAsString(response));
+                        LOGGER.info(response.toString());
                         break;
-                    case "status":
-                        LOGGER.info("GET STATUS > " + login);
-                        JSONObject response = new JSONObject();
+                    case STATUS:
+                        response = new ResponseMsg();
+                        LOGGER.info("GET STATUS > " + player.getLogin());
                         if (!DBlayer.statusRoom(room.getId())) {
-                            response.put("status", "CLOSE");
-                            out.println(response);
-                            LOGGER.info("CLOSE PARTY");
+                            response.setStatus(TypeStatusMsg.CLOSE);
+                            out.println(mapper.writeValueAsString(response));
+                            LOGGER.info("CLOSE PARTY " + response.toString());
                             break;
                         }
-                        response.put("status", DBlayer.getPlayerStatus(room.getId(), login));
-                        out.println(response);
-                        System.out.println("response " + response);
+                        response.setStatus(TypeStatusMsg.valueOf(DBlayer.getPlayerStatus(room.getId(), player.getLogin())));
+                        out.println(mapper.writeValueAsString(response));
+                        LOGGER.info(response.toString());
                         break;
-                    case "positions":
-                        out.println(GameUtils.getGameObj(DBlayer.getGameObjList(room.getId())));
+                    case POSITIONS:
+                        response = new ResponseMsg(TypeStatusMsg.GAME_OBJ);
+                        response.setGameObjs(DBlayer.getGameObjList(room.getId()));
+                        out.println(mapper.writeValueAsString(response));
+                        LOGGER.info(response.toString());
                         break;
                     default:
                         LOGGER.info("invalid msg");
                 }
             }
             System.out.println("END");
-            DBlayer.closeGame(room.getId(), login);
+            DBlayer.closeGame(room.getId(), player.getLogin());
 
-        } catch (IOException | ParseException | SQLException e) {
+        } catch (IOException | SQLException e) {
             close(e.getMessage());
-            DBlayer.closeGame(room.getId(), login);
+            DBlayer.closeGame(room.getId(), player.getLogin());
             LOGGER.log(Level.SEVERE, e.getMessage(), e);
         } catch (RuntimeException e) {
             close(e.getMessage());
-            DBlayer.closeGame(room.getId(), login);
+            DBlayer.closeGame(room.getId(), player.getLogin());
             LOGGER.log(Level.SEVERE, "Error", e);
         }
 

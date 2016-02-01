@@ -1,10 +1,13 @@
 package quoridor;
 
+import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import quoridor.model.GameObj;
+import quoridor.model.RequestMsg;
+import quoridor.model.ResponseMsg;
+import quoridor.model.TypeRequestMsg;
+import quoridor.model.TypeStatusMsg;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -22,86 +25,80 @@ public class Connector {
     private Socket conn;
     private PrintWriter out;
     private BufferedReader in;
-    private JSONObject object;
+    private RequestMsg request;
+    private ResponseMsg response;
+    private ObjectMapper mapper;
 
-    private String msg;
-    private String login;
-    private String password;
+    private final String login;
+    private final String password;
 
 
-    public Connector(String url, String port, String login, String password) throws IOException {
+    public Connector(String url, String port, final String login, final String password) throws IOException {
         this.conn = new Socket(url, Integer.valueOf(port));
         this.out = new PrintWriter(new BufferedOutputStream(conn.getOutputStream()), true);
         this.in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-        this.login = login;
+        this.mapper = new ObjectMapper();
         this.password = password;
+        this.login = login;
+
+        mapper.configure(JsonParser.Feature.AUTO_CLOSE_SOURCE, false);
         conn.setSoTimeout(300000);
-        login();
     }
 
     public String getStatus() throws IOException, ParseException {
-        object = new JSONObject();
-        object.put("msg_type", "status");
-        sendMsg(object);
-        msg = in.readLine();
-        JSONParser parser = new JSONParser();
-        System.out.println(msg);
-        Object result = parser.parse(msg);
-        object = (JSONObject) result;
-        System.out.println("response >>> " + (String) object.get("status"));
-        return (String) object.get("status");
-
+        request = new RequestMsg(TypeRequestMsg.STATUS);
+        sendMsg(request);
+        response = mapper.readValue(in, ResponseMsg.class);
+        System.out.println(response);
+        return response.getStatus();
     }
 
     public void sendPosition(GameObj gameObj) throws IOException, ParseException {
-        object = new JSONObject();
-        object.put("msg_type", "move");
-        object.put("type", gameObj.getType());
-        object.put("x", gameObj.getX());
-        object.put("y", gameObj.getY());
-        object.put("x2", gameObj.getX2());
-        object.put("y2", gameObj.getY2());
-        sendMsg(object);
-        JSONParser parser = new JSONParser();
-        System.out.println(msg);
-        msg = in.readLine();
-        object = (JSONObject) parser.parse(msg);
-        if (object.get("status").equals("ERROR")) {
+        request = new RequestMsg(TypeRequestMsg.MOVE);
+        request.setGameObj(gameObj);
+        sendMsg(request);
+        response = mapper.readValue(in, ResponseMsg.class);
+        System.out.println(response);
+        if (response.getStatus().equals(TypeStatusMsg.ERROR.name())) {
             throw new IOException();
         }
     }
 
     public List<GameObj> getGameObj() throws IOException, ParseException {
-        ObjectMapper mapper = new ObjectMapper();
-        object = new JSONObject();
-        object.put("msg_type", "positions");
-        sendMsg(object);
-        msg = in.readLine();
-        System.out.println(msg);
-        return mapper.readValue(msg, mapper.getTypeFactory().constructCollectionType(List.class, GameObj.class));
+        request = new RequestMsg(TypeRequestMsg.POSITIONS);
+        sendMsg(request);
+        response = mapper.readValue(in, ResponseMsg.class);
+        System.out.println(response);
+        return response.getGameObjs();
     }
 
-    private void sendMsg(JSONObject object) {
-        out.println(this.object);
-        System.out.println("send >>> " + this.object);
+    private void sendMsg(RequestMsg requestMsg) throws IOException {
+        out.println(mapper.writeValueAsString(requestMsg));
+        System.out.println("send >>> " + requestMsg);
     }
 
     public void login() throws IOException {
-        object = new JSONObject();
-        object.put("msg_type", "login");
-        object.put("login", this.login);
-        object.put("password", this.password);
-        sendMsg(object);
-        object = new JSONObject();
-        object.put("msg_type", "start");
+        this.request = new RequestMsg();
+        request.setMsgType(TypeRequestMsg.LOGIN);
+        request.setLogin(this.login);
+        request.setPassword(this.password);
+        sendMsg(request);
+        response = mapper.readValue(in, ResponseMsg.class);
+        System.out.println(response);
+        if (response.getStatus().equals(TypeStatusMsg.ERROR.name())){
+            throw new IOException();
+        }
+        request.setMsgType(TypeRequestMsg.START);
 //        TODO переделать этот бред на асинхронный вызов
+
         while (true) {
             try {
-                sendMsg(object);
-                if (in.readLine().equals("start")) {
+                sendMsg(request);
+                response = mapper.readValue(in, ResponseMsg.class);
+                System.out.println(response);
+                if (response.getStatus().equals(TypeStatusMsg.START.name())) {
                     break;
                 }
-                System.out.println("WAIT START");
                 Thread.sleep(3000);
             } catch (InterruptedException e) {
                 e.printStackTrace();

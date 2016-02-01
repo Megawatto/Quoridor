@@ -47,9 +47,10 @@ public class MainFrame extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 try {
                     connector = new Connector(url.getText(), port.getText(), login.getText(), password.getText());
+                    connector.login();
                     initGameScreen();
                 } catch (IOException ex) {
-                    JOptionPane.showMessageDialog(new Frame(),ex,"ERROR", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(new Frame(),"Authorization failed","Connection error", JOptionPane.ERROR_MESSAGE);
                     ex.printStackTrace();
                 } catch (ParseException e1) {
                     e1.printStackTrace();

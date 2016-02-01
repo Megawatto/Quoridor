@@ -1,4 +1,4 @@
-package server.model;
+package quoridor.model;
 
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.annotate.JsonSetter;

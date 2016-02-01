@@ -18,14 +18,6 @@ public class GameObj {
     public GameObj() {
     }
 
-    public GameObj(JSONObject object) {
-        this.type = (String) object.get("type");
-        this.x = Math.toIntExact((Long) object.get("x"));
-        this.y = Math.toIntExact((Long) object.get("y"));
-        this.x2 = Math.toIntExact((Long) object.get("x2"));
-        this.y2 = Math.toIntExact((Long) object.get("y2"));
-    }
-
     public GameObj(GameObjModel plObj) {
         this.login = plObj.getPlayerLogin().getLogin();
         this.type = plObj.getType();
