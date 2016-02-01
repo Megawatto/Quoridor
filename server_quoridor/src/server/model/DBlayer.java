@@ -172,11 +172,21 @@ public class DBlayer {
         return result;
     }
 
+    public static GameObj getPlayerObj(String login, boolean opponent) throws SQLException {
+        GameObjModel objModel;
+        if (!opponent) {
+            objModel = gameObjs.queryBuilder().where().eq("player_login", login).and().eq("type", "player").queryForFirst();
+        } else {
+            objModel = gameObjs.queryBuilder().where().ne("player_login", login).and().eq("type", "player").queryForFirst();
+        }
+        return new GameObj(objModel);
+    }
+
     public static List<GameObjModel> getGameObjModelList(int roomId) throws SQLException {
         return gameObjs.queryForEq("room_id", roomId);
     }
 
-    public static void clearData()  {
+    public static void clearData() {
         try {
             TableUtils.clearTable(connectionSource, GameModel.class);
             TableUtils.clearTable(connectionSource, GameObjModel.class);

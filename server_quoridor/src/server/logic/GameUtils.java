@@ -1,10 +1,8 @@
 package server.logic;
 
-import org.codehaus.jackson.map.ObjectMapper;
 import server.model.DBlayer;
 import server.model.GameObj;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,36 +12,67 @@ import java.util.List;
  */
 public class GameUtils {
 
-    public static String getGameObj(List<GameObj> gameObjList) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        return mapper.writeValueAsString(gameObjList);
-    }
-
     public static boolean checkStep(GameObj nextStepObj, int roomId, String login) throws SQLException {
 
 
         List<GameObj> gameObjList = DBlayer.getGameObjList(roomId);
-        GameObj player = null;
-        GameObj opponent = null;
+        GameObj player = DBlayer.getPlayerObj(login, false);
+        GameObj opponent = DBlayer.getPlayerObj(login, true);
         List<GameObj> walls = new ArrayList<>();
         for (GameObj gameObj : gameObjList) {
-            if (gameObj.getLogin().equals(login) && gameObj.getType().equals("player")) {
-                player = gameObj;
-            }
-//            opponent = !gameObj.getLogin().equals(login) ? gameObj : null;
             if (gameObj.getType().equals("wall")) walls.add(gameObj);
         }
 
-        if (!nextStepObj.equals(player)) {
+        if (nextStepObj.getType().equals("wall")) {
             double result = (int) Math.sqrt(Math.pow(nextStepObj.getX() - nextStepObj.getX2(), 2) + (Math.pow(nextStepObj.getY() - nextStepObj.getY2(), 2)));
             int checkPosX = Math.abs(nextStepObj.getX() - nextStepObj.getX2());
             int checkPosY = Math.abs(nextStepObj.getY() - nextStepObj.getY2());
             return result == 2 && (checkPosX == 0 && checkPosY == 2 || checkPosX == 2 && checkPosY == 0);
         } else {
-            int checkPosX = Math.abs(player.getX() - nextStepObj.getX());
-            int checkPosY = Math.abs(player.getY() - nextStepObj.getY());
-            return checkPosX == 1 && checkPosY == 0 || checkPosX == 0 && checkPosY == 1;
+            if (nextStepObj.equals(opponent)) {
+                System.out.println("zaglushka");
+            } else {
+                int checkPosX = Math.abs(player.getX() - nextStepObj.getX());
+                int checkPosY = Math.abs(player.getY() - nextStepObj.getY());
+//                TODO косяк с координатами вместо 2х захватывает 3 ячейки
+                for (GameObj wall : walls) {
+                    int checkWallX = wall.getX() - nextStepObj.getX();
+                    int checkWallY = wall.getY() - nextStepObj.getY();
+                    System.out.println(">>>>>>>>>>>>>>>" + checkWallX + " " + checkWallY);
+                    if (wall.getY() > player.getY() && wall.getY() == wall.getY2()) {
+                        if (wall.getX() <= nextStepObj.getX() && wall.getX2() > nextStepObj.getX() && (wall.getY() - nextStepObj.getY()) == 0) {
+                            System.out.println("WALL");
+                            return false;
+                        }
+                    }
+                    if (wall.getY() <= player.getY() && wall.getY() == wall.getY2()) {
+                        if (wall.getX() <= nextStepObj.getX() && wall.getX2() > nextStepObj.getX() && (wall.getY() - nextStepObj.getY()) == 1) {
+                            System.out.println("WALL");
+                            return false;
+                        }
+                    }
+
+                    if (wall.getX() <= player.getX() && wall.getX() == wall.getX2()) {
+                        if (wall.getY() <= nextStepObj.getY() && wall.getY2() > nextStepObj.getY() && (wall.getX() - nextStepObj.getX()) == 1) {
+                            System.out.println("WALL");
+                            return false;
+                        }
+                    }
+
+                    if (wall.getX() > player.getX() && wall.getX() == wall.getX2()) {
+                        if (wall.getY() <= nextStepObj.getY() && wall.getY2() > nextStepObj.getY() && (wall.getX() - nextStepObj.getX()) == 0) {
+                            System.out.println("WALL");
+                            return false;
+                        }
+                    }
+
+
+                }
+                return checkPosX == 1 && checkPosY == 0 || checkPosX == 0 && checkPosY == 1;
+            }
+
         }
+        return false;
 
 //        if (nextStepObj.getType().equals("player")) {
 //            for (GameObj oldObj : gameObjList) {

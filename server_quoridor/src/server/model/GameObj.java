@@ -86,7 +86,6 @@ public class GameObj {
         if (y != gameObj.y) return false;
         if (x2 != gameObj.x2) return false;
         if (y2 != gameObj.y2) return false;
-        if (!login.equals(gameObj.login)) return false;
         return type.equals(gameObj.type);
 
     }

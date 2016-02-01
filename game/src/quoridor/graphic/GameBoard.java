@@ -50,7 +50,7 @@ public final class GameBoard extends JPanel {
                         if (msg.equals("MOVE")) {
                             break;
                         }
-                        if (msg.equals("CLOSE")){
+                        if (msg.equals("CLOSE")) {
                             closeParty();
                         }
                         System.out.println("WAIT STEP");
@@ -95,8 +95,9 @@ public final class GameBoard extends JPanel {
             public void mouseReleased(MouseEvent e) {
                 super.mouseReleased(e);
                 if (active) {
-                    if (Math.abs(startWallX - e.getX()) <= 25 && Math.abs(startWallY - e.getY()) <= 25) {
+                    if (Math.abs(startWallX - e.getX()) <= SIZE_CELL && Math.abs(startWallY - e.getY()) <= SIZE_CELL) {
                         GameObj nextStep = new GameObj();
+                        nextStep.setLogin(LOGIN);
                         nextStep.setType(TYPE_PLAYER);
                         nextStep.setX(calcPositionX(e.getX()));
                         nextStep.setY(calcPositionY(e.getY()));
@@ -115,7 +116,9 @@ public final class GameBoard extends JPanel {
                         endWallX = 0;
                         endWallY = 0;
                         GameObj nextStep = new GameObj();
+                        nextStep.setLogin(LOGIN);
                         nextStep.setType(TYPE_WALL);
+                        convertCoords(startWallX, startWallY, endWallX, endWallY);
                         nextStep.setX(calcPositionX(startWallX));
                         nextStep.setY(calcPositionY(startWallY));
                         nextStep.setX2(calcPositionX(e.getX()));
@@ -134,6 +137,17 @@ public final class GameBoard extends JPanel {
                 System.out.println("LOCK");
             }
         });
+    }
+
+    private void convertCoords(int startWallX, int startWallY, int endWallX, int endWallY) {
+        if (startWallX < endWallX){
+            this.startWallX = endWallX;
+            this.endWallX = startWallX;
+        }
+        if (startWallY < endWallY){
+            this.startWallY = endWallY;
+            this.endWallY = startWallY;
+        }
     }
 
 
@@ -187,8 +201,8 @@ public final class GameBoard extends JPanel {
         return y;
     }
 
-    private void closeParty(){
-        JOptionPane.showMessageDialog(new Frame(),"CLose Party","END GAME",JOptionPane.INFORMATION_MESSAGE);
+    private void closeParty() {
+        JOptionPane.showMessageDialog(new Frame(), "Close Party", "END GAME", JOptionPane.INFORMATION_MESSAGE);
         connector.close();
         System.exit(0);
     }
