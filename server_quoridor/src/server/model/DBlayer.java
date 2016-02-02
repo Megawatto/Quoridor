@@ -122,9 +122,18 @@ public class DBlayer {
         return room.getStatus().equals("START");
     }
 
-    public synchronized static void initGameObj(PlayerModel player, RoomModel room) throws SQLException {
-        GameModel gameModel = games.queryBuilder().where().eq(GameModel.PLAYER_LOGIN_FIELD_NAME, player.getLogin()).queryForFirst();
-        gameObjs.create(StartGameObjUtils.createStartPlayerObj(room, player, gameModel.getQueue()));
+    public synchronized static void initGameObj(RoomModel room) throws SQLException {
+        List<GameModel> gameModels = games.queryForEq(GameModel.ROOM_ID_FIELD_NAME, room.getId());
+        Collections.sort(gameModels, new Comparator<GameModel>() {
+            @Override
+            public int compare(GameModel o1, GameModel o2) {
+                return o1.getQueue() < o2.getQueue() ? -1 : 1;
+            }
+        });
+
+        for (GameModel gameModel : gameModels) {
+            gameObjs.create(StartGameObjUtils.createStartPlayerObj(room, gameModel.getPlayer(), gameModel.getQueue()));
+        }
     }
 
     public static void setPositions(int roomId, String login, GameObjModel gameObjModel) throws SQLException {

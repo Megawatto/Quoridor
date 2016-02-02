@@ -34,6 +34,7 @@ public class ServerQuoridor {
             }
             System.out.printf("Start Server witch port=%d pool =%d\n", port, pool);
             List<Session> sessions = new ArrayList<Session>();
+            List<Game> games = new ArrayList<>();
             ServerSocket serverSocket = new ServerSocket(port);
             DBlayer.createConnectFromDB();
             DBlayer.clearData();
@@ -47,8 +48,6 @@ public class ServerQuoridor {
                 } else {
                     System.out.println("Connect #" + sessions.size() + " >>> " + socket);
                     Session session = Session.createSession(socket);
-                    session.start();
-                    sessions.add(session);
                 }
             }
 

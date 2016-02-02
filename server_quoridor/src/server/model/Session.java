@@ -30,14 +30,25 @@ public class Session extends Thread {
     private RoomModel room;
     private PlayerModel player;
     private ResponseMsg response;
+    private RequestMsg request;
+    BufferedReader in;
+    PrintWriter out;
+    ObjectMapper mapper;
     private boolean isAuthorization = false;
 
     public Session(Socket socket) {
         this.socket = socket;
+        try {
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            out = new PrintWriter(new BufferedOutputStream(socket.getOutputStream()), true);
+            mapper.configure(JsonParser.Feature.AUTO_CLOSE_SOURCE, false);
+        } catch (IOException e) {
+        }
     }
 
     public static Session createSession(Socket socket) {
         LOGGER.info("New session " + socket);
+
         return new Session(socket);
     }
 
@@ -46,12 +57,10 @@ public class Session extends Thread {
         super.run();
         LOGGER.info("Start Session " + this.getName());
         try {
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            PrintWriter out = new PrintWriter(new BufferedOutputStream(socket.getOutputStream()), true);
+
             ObjectMapper mapper = new ObjectMapper();
-            mapper.configure(JsonParser.Feature.AUTO_CLOSE_SOURCE, false);
             while (true) {
-                RequestMsg request = mapper.readValue(in, RequestMsg.class);
+                request = mapper.readValue(in, RequestMsg.class);
                 if (request == null) {
                     response = new ResponseMsg(TypeStatusMsg.ERROR, "invalid msg");
                     out.println(mapper.writeValueAsString(response));
@@ -63,20 +72,7 @@ public class Session extends Thread {
 
                 switch (valueOf(request.getMsgType())) {
                     case LOGIN:
-                        String login = request.getLogin();
-                        String password = request.getPassword();
-                        this.player = login != null ? DBlayer.authorization(login, password) : null;
-                        if (player == null) {
-                            response = new ResponseMsg(TypeStatusMsg.ERROR, "ACCESS DENIED");
-                            out.println(mapper.writeValueAsString(response));
-                            LOGGER.info(response.toString());
-                            System.out.println("ACCESS DENIED");
-                            throw new RuntimeException("ACCESS DENIED");
-                        }
-                        response = new ResponseMsg(TypeStatusMsg.OK);
-                        out.println(mapper.writeValueAsString(response));
-                        isAuthorization = true;
-                        LOGGER.info(response.toString());
+
                         room = DBlayer.findRoom(player);
                         break;
                     case START:
@@ -163,7 +159,28 @@ public class Session extends Thread {
         }
     }
 
+    public void authorization() throws IOException {
+        String login = request.getLogin();
+        String password = request.getPassword();
+        this.player = login != null ? DBlayer.authorization(login, password) : null;
+        if (player == null) {
+            response = new ResponseMsg(TypeStatusMsg.ERROR, "ACCESS DENIED");
+            out.println(mapper.writeValueAsString(response));
+            LOGGER.info(response.toString());
+            System.out.println("ACCESS DENIED");
+            throw new RuntimeException("ACCESS DENIED");
+        }
+        response = new ResponseMsg(TypeStatusMsg.OK);
+        out.println(mapper.writeValueAsString(response));
+        isAuthorization = true;
+        LOGGER.info(response.toString());
+    }
+
     public boolean isAuthorization() {
         return isAuthorization;
+    }
+
+    public PlayerModel getPlayer() {
+        return player;
     }
 }
