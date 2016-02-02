@@ -5,6 +5,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import server.domain.PlayerModel;
 import server.domain.RoomModel;
 import server.exception.GameException;
+import server.logic.GameLogic;
 import server.logic.GameUtils;
 
 import java.io.BufferedOutputStream;
@@ -22,6 +23,7 @@ import static server.model.TypeRequestMsg.valueOf;
 /**
  * Created by Valera on 22.01.2016.
  */
+
 public class Session extends Thread {
 
     private Socket socket;
@@ -31,17 +33,19 @@ public class Session extends Thread {
     private PlayerModel player;
     private ResponseMsg response;
     private RequestMsg request;
-    BufferedReader in;
-    PrintWriter out;
-    ObjectMapper mapper;
-    private boolean isAuthorization = false;
+    private BufferedReader in;
+    private PrintWriter out;
+    private ObjectMapper mapper;
+    private boolean authorization = false;
+    private GameLogic game;
 
     public Session(Socket socket) {
         this.socket = socket;
         try {
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            out = new PrintWriter(new BufferedOutputStream(socket.getOutputStream()), true);
-            mapper.configure(JsonParser.Feature.AUTO_CLOSE_SOURCE, false);
+            this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            this.out = new PrintWriter(new BufferedOutputStream(socket.getOutputStream()), true);
+            this.mapper = new ObjectMapper();
+            this.mapper.configure(JsonParser.Feature.AUTO_CLOSE_SOURCE, false);
         } catch (IOException e) {
         }
     }
@@ -57,8 +61,6 @@ public class Session extends Thread {
         super.run();
         LOGGER.info("Start Session " + this.getName());
         try {
-
-            ObjectMapper mapper = new ObjectMapper();
             while (true) {
                 request = mapper.readValue(in, RequestMsg.class);
                 if (request == null) {
@@ -69,73 +71,13 @@ public class Session extends Thread {
                     break;
                 }
                 LOGGER.info(request.toString());
-
-                switch (valueOf(request.getMsgType())) {
-                    case LOGIN:
-
-                        room = DBlayer.findRoom(player);
-                        break;
-                    case START:
-                        response = new ResponseMsg();
-                        if (DBlayer.statusRoom(room.getId())) {
-                            DBlayer.initGameObj(player, room);
-                            response.setStatus(TypeStatusMsg.START);
-                            out.println(mapper.writeValueAsString(response));
-                            LOGGER.info(response.toString());
-                        } else {
-                            response.setStatus(TypeStatusMsg.WAIT);
-                            out.println(mapper.writeValueAsString(response));
-                            LOGGER.info(response.toString());
-                        }
-                        break;
-                    case MOVE:
-                        response = new ResponseMsg();
-                        System.out.println("SET POSITION > " + player.getLogin());
-                        try {
-                            if (GameUtils.checkStep(request.getGameObjModel(), room.getId(), player.getLogin())) {
-                                DBlayer.setPositions(room.getId(), player.getLogin(), request.getGameObjModel());
-                                response.setStatus(TypeStatusMsg.OK);
-                                out.println(mapper.writeValueAsString(response));
-                                LOGGER.info(response.toString());
-                                break;
-                            }
-                        } catch (GameException e) {
-                            response.setStatus(TypeStatusMsg.ERROR);
-                            response.setMsg(e.getMessage());
-                            out.println(mapper.writeValueAsString(response));
-                            LOGGER.info(response.toString());
-                            break;
-                        }
-                    case STATUS:
-                        response = new ResponseMsg();
-                        LOGGER.info("GET STATUS > " + player.getLogin());
-                        if (!DBlayer.statusRoom(room.getId())) {
-                            response.setStatus(TypeStatusMsg.CLOSE);
-                            out.println(mapper.writeValueAsString(response));
-                            LOGGER.info("CLOSE PARTY " + response.toString());
-                            break;
-                        }
-                        response.setStatus(TypeStatusMsg.valueOf(DBlayer.getPlayerStatus(room.getId(), player.getLogin())));
-                        out.println(mapper.writeValueAsString(response));
-                        LOGGER.info(response.toString());
-                        break;
-                    case POSITIONS:
-                        response = new ResponseMsg(TypeStatusMsg.GAME_OBJ);
-                        response.setGameObjModels(DBlayer.getGameObjList(room.getId()));
-                        out.println(mapper.writeValueAsString(response));
-                        LOGGER.info(response.toString());
-                        break;
-                    case FINISH:
-                        response = new ResponseMsg(TypeStatusMsg.WIN);
-                        break;
-                    default:
-                        LOGGER.info("invalid msg");
-                }
+                out.println(mapper.writeValueAsString(messageHandling(request)));
+                LOGGER.info(response.toString());
             }
             System.out.println("END");
             DBlayer.closeGame(room.getId(), player.getLogin());
 
-        } catch (IOException | SQLException e) {
+        } catch (IOException e) {
             close(e.getMessage());
             DBlayer.closeGame(room.getId(), player.getLogin());
             LOGGER.log(Level.SEVERE, e.getMessage(), e);
@@ -143,6 +85,7 @@ public class Session extends Thread {
             close(e.getMessage());
             DBlayer.closeGame(room.getId(), player.getLogin());
             LOGGER.log(Level.SEVERE, "Error", e);
+        } catch (SQLException e) {
         }
 
     }
@@ -160,27 +103,97 @@ public class Session extends Thread {
     }
 
     public void authorization() throws IOException {
-        String login = request.getLogin();
-        String password = request.getPassword();
-        this.player = login != null ? DBlayer.authorization(login, password) : null;
-        if (player == null) {
-            response = new ResponseMsg(TypeStatusMsg.ERROR, "ACCESS DENIED");
-            out.println(mapper.writeValueAsString(response));
-            LOGGER.info(response.toString());
-            System.out.println("ACCESS DENIED");
-            throw new RuntimeException("ACCESS DENIED");
+
+    }
+
+
+    public ResponseMsg messageHandling(RequestMsg request) throws IOException, SQLException {
+
+        switch (valueOf(request.getMsgType())) {
+            case LOGIN:
+                String login = request.getLogin();
+                String password = request.getPassword();
+                this.player = login != null ? DBlayer.authorization(login, password) : null;
+                if (player == null) {
+                    response = new ResponseMsg(TypeStatusMsg.ERROR, "ACCESS DENIED");
+                    out.println(mapper.writeValueAsString(response));
+                    LOGGER.info(response.toString());
+                    System.out.println("ACCESS DENIED");
+                    throw new RuntimeException("ACCESS DENIED");
+                }
+                response = new ResponseMsg(TypeStatusMsg.OK);
+                authorization = true;
+                game.addPlayer(player, this);
+
+//                FIXME remove this
+                room = DBlayer.findRoom(player);
+
+                break;
+            case START:
+                response = new ResponseMsg();
+                if (game.startGame()) {
+                    response.setStatus(TypeStatusMsg.START);
+                } else {
+                    response.setStatus(TypeStatusMsg.WAIT);
+                }
+
+                break;
+            case MOVE:
+                game.checkQueue();
+                game.checkFinish();
+                game.checkStep();
+
+
+                response = new ResponseMsg();
+                System.out.println("SET POSITION > " + player.getLogin());
+                try {
+                    if (GameUtils.checkStep(request.getGameObjModel(), room.getId(), player.getLogin())) {
+                        DBlayer.setPositions(room.getId(), player.getLogin(), request.getGameObjModel());
+                        response.setStatus(TypeStatusMsg.OK);
+                        break;
+                    }
+                } catch (GameException e) {
+                    response.setStatus(TypeStatusMsg.ERROR);
+                    response.setMsg(e.getMessage());
+                    break;
+                }
+            case STATUS:
+                response = new ResponseMsg();
+                LOGGER.info("GET STATUS > " + player.getLogin());
+                if (!DBlayer.statusRoom(room.getId())) {
+                    response.setStatus(TypeStatusMsg.CLOSE);
+                    break;
+                }
+                response.setStatus(TypeStatusMsg.valueOf(DBlayer.getPlayerStatus(room.getId(), player.getLogin())));
+                out.println(mapper.writeValueAsString(response));
+                LOGGER.info(response.toString());
+                break;
+            case POSITIONS:
+                response = new ResponseMsg(TypeStatusMsg.GAME_OBJ);
+                response.setGameObjModels(DBlayer.getGameObjList(room.getId()));
+                break;
+            case FINISH:
+                response = new ResponseMsg(TypeStatusMsg.WIN);
+                break;
+            default:
+                LOGGER.info("invalid msg");
         }
-        response = new ResponseMsg(TypeStatusMsg.OK);
-        out.println(mapper.writeValueAsString(response));
-        isAuthorization = true;
-        LOGGER.info(response.toString());
+        return response;
+    }
+
+    public void setGame(Game game) {
+        this.game = game;
     }
 
     public boolean isAuthorization() {
-        return isAuthorization;
+        return authorization;
     }
 
     public PlayerModel getPlayer() {
         return player;
+    }
+
+    public RoomModel getRoom() {
+        return room;
     }
 }

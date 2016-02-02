@@ -79,11 +79,6 @@ public class DBlayer {
 
     public static RoomModel findRoom(PlayerModel player) throws SQLException {
         RoomModel room = rooms.queryBuilder().where().lt("count_pl", 2).queryForFirst();
-        if (room == null) {
-            rooms.create(new RoomModel("test", "WAIT"));
-            room = rooms.queryBuilder().where().lt("count_pl", 2).queryForFirst();
-            System.out.println("CREATE NEW ROOM ID =" + room.getId());
-        }
         games.create(new GameModel(room, players.queryForId(player.getLogin()), room.getCountPlayer() == 0 ? "MOVE" : "WAIT", room.getCountPlayer()));
         room.setCountPlayer(games.queryForEq("room_id", room.getId()).size());
         if (room.getCountPlayer() == 2) {
@@ -167,7 +162,7 @@ public class DBlayer {
     public static List<GameObjModel> getGameObjList(int roomId) throws SQLException {
         List<server.domain.GameObjModel> plObj = gameObjs.queryForEq("room_id", roomId);
         List<GameObjModel> result = new ArrayList<>();
-        for (server.domain.GameObjModel gameObjModelModel : plObj) {
+        for (GameObjModel gameObjModelModel : plObj) {
             result.add(new GameObjModel(gameObjModelModel));
         }
         System.out.println(result);
@@ -210,6 +205,13 @@ public class DBlayer {
             throw new RuntimeException("FACK");
         }
 
+    }
+
+    public static RoomModel createRoom() throws SQLException {
+        RoomModel newRoom = new RoomModel("test", "WAIT");
+        rooms.create(newRoom);
+        System.out.println("CREATE NEW ROOM ID =" + newRoom.getId());
+        return newRoom;
     }
 }
 

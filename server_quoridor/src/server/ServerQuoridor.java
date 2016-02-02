@@ -7,6 +7,7 @@ import server.model.Session;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,10 +49,21 @@ public class ServerQuoridor {
                 } else {
                     System.out.println("Connect #" + sessions.size() + " >>> " + socket);
                     Session session = Session.createSession(socket);
+//                    FIXME доделать создание игры
+                    if (games.size() == 0) {
+                        games.add(new Game());
+                    }
+
+                    for (Game game : games) {
+                        if (!game.isRun() && !game.isClose()) {
+                            session.setGame(game);
+                            session.start();
+                        }
+                    }
                 }
             }
 
-        } catch (IOException e) {
+        } catch (IOException | SQLException e) {
             e.printStackTrace();
         }
     }
