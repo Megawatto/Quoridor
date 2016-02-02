@@ -7,15 +7,16 @@ import com.j256.ormlite.stmt.DeleteBuilder;
 import com.j256.ormlite.stmt.UpdateBuilder;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
-import org.sqlite.SQLiteConfig;
-import org.sqlite.SQLiteDataSource;
 import server.domain.GameModel;
 import server.domain.GameObjModel;
 import server.domain.PlayerModel;
 import server.domain.RoomModel;
+import server.utils.StartGameObjUtils;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -26,7 +27,7 @@ public class DBlayer {
     private static Dao<RoomModel, Integer> rooms;
     private static Dao<GameModel, Integer> games;
     private static Dao<PlayerModel, String> players;
-    private static Dao<GameObjModel, Integer> gameObjs;
+    private static Dao<server.domain.GameObjModel, Integer> gameObjs;
     private static ConnectionSource connectionSource;
 
     public DBlayer() {
@@ -36,16 +37,12 @@ public class DBlayer {
     public static void createConnectFromDB() {
         try {
             Class.forName("org.sqlite.JDBC");
-            SQLiteConfig config = new SQLiteConfig();
-            config.enforceForeignKeys(true);
-            SQLiteDataSource sqLiteDataSource = new SQLiteDataSource(config);
-
             connectionSource = new JdbcConnectionSource("jdbc:sqlite:C:/Users/Valera/IdeaProjects/Quoridor/server_quoridor/test.db");
-
             rooms = DaoManager.createDao(connectionSource, RoomModel.class);
             games = DaoManager.createDao(connectionSource, GameModel.class);
             players = DaoManager.createDao(connectionSource, PlayerModel.class);
-            gameObjs = DaoManager.createDao(connectionSource, GameObjModel.class);
+            gameObjs = DaoManager.createDao(connectionSource, server.domain.GameObjModel.class);
+            rooms.executeRaw("PRAGMA foreign_keys = ON;");
         } catch (Exception e) {
             System.err.println(e.getClass().getName() + ": " + e.getMessage());
             System.exit(0);
@@ -87,7 +84,7 @@ public class DBlayer {
             room = rooms.queryBuilder().where().lt("count_pl", 2).queryForFirst();
             System.out.println("CREATE NEW ROOM ID =" + room.getId());
         }
-        games.create(new GameModel(room, players.queryForId(player.getLogin()), room.getCountPlayer() == 0 ? "MOVE" : "WAIT"));
+        games.create(new GameModel(room, players.queryForId(player.getLogin()), room.getCountPlayer() == 0 ? "MOVE" : "WAIT", room.getCountPlayer()));
         room.setCountPlayer(games.queryForEq("room_id", room.getId()).size());
         if (room.getCountPlayer() == 2) {
             room.setStatus("START");
@@ -103,7 +100,7 @@ public class DBlayer {
             delBul.where().eq("room_id", roomId);
             delBul.delete();
 
-            DeleteBuilder<GameObjModel, Integer> gameObjDeleteBuilder = gameObjs.deleteBuilder();
+            DeleteBuilder<server.domain.GameObjModel, Integer> gameObjDeleteBuilder = gameObjs.deleteBuilder();
             gameObjDeleteBuilder.where().eq("room_id", roomId);
             gameObjDeleteBuilder.delete();
 
@@ -126,27 +123,23 @@ public class DBlayer {
     }
 
     public synchronized static void initGameObj(PlayerModel player, RoomModel room) throws SQLException {
-//        TODO Придумать более нормальный способ
-        if (games.queryBuilder().where()
-                .eq("status", "MOVE")
-                .and().eq("room_id", room.getId())
-                .and().eq("player_login", player.getLogin())
-                .queryForFirst() != null) {
-            GameModel opponent = games.queryBuilder().where().eq("room_id", room.getId()).and().ne("player_login", player.getLogin()).queryForFirst();
-            gameObjs.create(new GameObjModel(room, player, "player", 5, 1, 0, 0));
-            gameObjs.create(new GameObjModel(room, opponent.getPlayerLogin(), "player", 5, 9, 0, 0));
-        }
+        GameModel gameModel = games.queryBuilder().where().eq(GameModel.PLAYER_LOGIN_FIELD_NAME, player.getLogin()).queryForFirst();
+        gameObjs.create(StartGameObjUtils.createStartPlayerObj(room, player, gameModel.getQueue()));
     }
 
-    public static void setPositions(int roomId, String login, GameObj gameObj) throws SQLException {
+    public static void setPositions(int roomId, String login, GameObjModel gameObjModel) throws SQLException {
 
-        if (gameObj.getType().equals("player")) {
-            GameObjModel newGameObj = gameObjs.queryBuilder()
-                    .where().eq("room_id", roomId).and().eq("player_login", login).and().eq("type", "player").queryForFirst();
-            newGameObj.setObj(gameObj);
-            gameObjs.update(newGameObj);
+        if (gameObjModel.getType().equals(StartGameObjUtils.TYPE_OBJ_PLAYER)) {
+            GameObjModel newGameObjModel = gameObjs.queryBuilder()
+                    .where()
+                    .eq(GameObjModel.ROOM_ID_FIELD_NAME, roomId)
+                    .and()
+                    .eq(GameObjModel.PLAYER_LOGIN_FIELD_NAME, login)
+                    .and()
+                    .eq("type", "player").queryForFirst();
+            gameObjs.update(newGameObjModel);
         } else {
-            gameObjs.create(new GameObjModel(rooms.queryForId(roomId), players.queryForId(login), gameObj));
+            gameObjs.create(gameObjModel);
         }
         UpdateBuilder<GameModel, Integer> gameUpdateBuilder = games.updateBuilder();
         gameUpdateBuilder.updateColumnValue("status", "WAIT").where().eq("room_id", roomId).and().eq("player_login", login);
@@ -162,34 +155,43 @@ public class DBlayer {
         return games.queryBuilder().where().eq("room_id", roomId).and().eq("player_login", login).queryForFirst().getStatus();
     }
 
-    public static List<GameObj> getGameObjList(int roomId) throws SQLException {
-        List<GameObjModel> plObj = gameObjs.queryForEq("room_id", roomId);
-        List<GameObj> result = new ArrayList<>();
-        for (GameObjModel gameObjModel : plObj) {
-            result.add(new GameObj(gameObjModel));
+    public static List<GameObjModel> getGameObjList(int roomId) throws SQLException {
+        List<server.domain.GameObjModel> plObj = gameObjs.queryForEq("room_id", roomId);
+        List<GameObjModel> result = new ArrayList<>();
+        for (server.domain.GameObjModel gameObjModelModel : plObj) {
+            result.add(new GameObjModel(gameObjModelModel));
         }
         System.out.println(result);
         return result;
     }
 
-    public static GameObj getPlayerObj(String login, boolean opponent) throws SQLException {
-        GameObjModel objModel;
+    public static GameObjModel getPlayerObj(String login, boolean opponent) throws SQLException {
+        server.domain.GameObjModel objModel;
         if (!opponent) {
             objModel = gameObjs.queryBuilder().where().eq("player_login", login).and().eq("type", "player").queryForFirst();
         } else {
             objModel = gameObjs.queryBuilder().where().ne("player_login", login).and().eq("type", "player").queryForFirst();
         }
-        return new GameObj(objModel);
+        return new GameObjModel(objModel);
     }
 
-    public static List<GameObjModel> getGameObjModelList(int roomId) throws SQLException {
-        return gameObjs.queryForEq("room_id", roomId);
+    public static void setStatusPlayer(TypeStatusMsg statusMsg) {
+        switch (statusMsg) {
+            case MOVE:
+                break;
+            case WAIT:
+                break;
+            case WIN:
+                break;
+            case LOSE:
+                break;
+        }
     }
 
     public static void clearData() {
         try {
             TableUtils.clearTable(connectionSource, GameModel.class);
-            TableUtils.clearTable(connectionSource, GameObjModel.class);
+            TableUtils.clearTable(connectionSource, server.domain.GameObjModel.class);
             TableUtils.clearTable(connectionSource, RoomModel.class);
             UpdateBuilder updPlayer = players.updateBuilder();
             updPlayer.updateColumnValue("active", false);

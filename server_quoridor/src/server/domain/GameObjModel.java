@@ -2,7 +2,7 @@ package server.domain;
 
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
-import server.model.GameObj;
+import server.utils.Point;
 
 /**
  * Created by Valera on 28.01.2016.
@@ -10,6 +10,9 @@ import server.model.GameObj;
 
 @DatabaseTable(tableName = "game_obj")
 public class GameObjModel {
+
+    public static final String ROOM_ID_FIELD_NAME = "room_id";
+    public static final String PLAYER_LOGIN_FIELD_NAME = "player_login";
 
     @DatabaseField(generatedId = true)
     private Integer id;
@@ -38,10 +41,14 @@ public class GameObjModel {
     public GameObjModel() {
     }
 
-    public GameObjModel(RoomModel roomId, PlayerModel playerLogin, GameObj obj) {
+    public GameObjModel(RoomModel roomId, PlayerModel playerLogin, String type, Point point) {
         this.roomId = roomId;
         this.playerLogin = playerLogin;
-        setObj(obj);
+        this.type = type;
+        this.x = x;
+        this.x2 = x2;
+        this.y = y;
+        this.y2 = y2;
     }
 
     public GameObjModel(RoomModel roomId, PlayerModel playerLogin, String type, Integer x, Integer y, Integer x2, Integer y2) {
@@ -118,12 +125,4 @@ public class GameObjModel {
         this.y2 = y2;
     }
 
-
-    public void setObj(GameObj obj) {
-        this.type = obj.getType();
-        this.x = obj.getX();
-        this.y = obj.getY();
-        this.x2 = obj.getX2();
-        this.y2 = obj.getY2();
-    }
 }

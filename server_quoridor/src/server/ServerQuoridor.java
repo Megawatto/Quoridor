@@ -1,6 +1,7 @@
 package server;
 
 import server.model.DBlayer;
+import server.model.Game;
 import server.model.Session;
 
 import java.io.*;
@@ -31,7 +32,7 @@ public class ServerQuoridor {
                 case 3:
                     break;
             }
-            System.out.printf("Start Server witch port=%d pool =%d\n",port,pool);
+            System.out.printf("Start Server witch port=%d pool =%d\n", port, pool);
             List<Session> sessions = new ArrayList<Session>();
             ServerSocket serverSocket = new ServerSocket(port);
             DBlayer.createConnectFromDB();
@@ -44,9 +45,10 @@ public class ServerQuoridor {
                     socket.close();
                     break;
                 } else {
-                    System.out.println("Connect #" + sessions.size()+ " >>> " + socket);
-                    sessions.add(Session.createSession(socket));
-                    sessions.get((sessions.size() - 1)).start();
+                    System.out.println("Connect #" + sessions.size() + " >>> " + socket);
+                    Session session = Session.createSession(socket);
+                    session.start();
+                    sessions.add(session);
                 }
             }
 

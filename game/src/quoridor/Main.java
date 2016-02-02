@@ -22,7 +22,5 @@ public class Main {
                 }
             }
         });
-//        Connector connector = new Connector("localhost", 8080);
-//        connector.sendPosition("test","test", 10, 10,10,10);
     }
 }

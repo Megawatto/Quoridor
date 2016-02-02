@@ -105,7 +105,7 @@ public final class GameBoard extends JPanel {
                             connector.sendPosition(nextStep);
                             gameObjs = connector.getGameObj();
                         } catch (IOException | ParseException e1) {
-                            gameMenu.updateStatus("invalid step");
+                            gameMenu.updateStatus(e1.getMessage());
                             e1.printStackTrace();
                             return;
                         }
@@ -140,11 +140,11 @@ public final class GameBoard extends JPanel {
     }
 
     private void convertCoords(int startWallX, int startWallY, int endWallX, int endWallY) {
-        if (startWallX < endWallX){
+        if (startWallX < endWallX) {
             this.startWallX = endWallX;
             this.endWallX = startWallX;
         }
-        if (startWallY < endWallY){
+        if (startWallY < endWallY) {
             this.startWallY = endWallY;
             this.endWallY = startWallY;
         }

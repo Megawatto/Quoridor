@@ -60,7 +60,7 @@ public class Connector {
         response = mapper.readValue(in, ResponseMsg.class);
         System.out.println(response);
         if (response.getStatus().equals(TypeStatusMsg.ERROR.name())) {
-            throw new IOException();
+            throw new IOException(response.getMsg());
         }
     }
 

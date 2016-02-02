@@ -35,7 +35,7 @@ public class MainFrame extends JFrame {
             @Override
             public void windowClosing(WindowEvent e) {
                 super.windowClosing(e);
-                System.out.println("CLose app");
+                System.out.println("Close app");
                 if (connector != null){
                     connector.close();
                 }

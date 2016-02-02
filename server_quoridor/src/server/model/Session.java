@@ -4,6 +4,7 @@ import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.map.ObjectMapper;
 import server.domain.PlayerModel;
 import server.domain.RoomModel;
+import server.exception.GameException;
 import server.logic.GameUtils;
 
 import java.io.BufferedOutputStream;
@@ -29,6 +30,7 @@ public class Session extends Thread {
     private RoomModel room;
     private PlayerModel player;
     private ResponseMsg response;
+    private boolean isAuthorization = false;
 
     public Session(Socket socket) {
         this.socket = socket;
@@ -49,7 +51,6 @@ public class Session extends Thread {
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(JsonParser.Feature.AUTO_CLOSE_SOURCE, false);
             while (true) {
-                System.out.println("WAIT MSG >>>");
                 RequestMsg request = mapper.readValue(in, RequestMsg.class);
                 if (request == null) {
                     response = new ResponseMsg(TypeStatusMsg.ERROR, "invalid msg");
@@ -74,6 +75,7 @@ public class Session extends Thread {
                         }
                         response = new ResponseMsg(TypeStatusMsg.OK);
                         out.println(mapper.writeValueAsString(response));
+                        isAuthorization = true;
                         LOGGER.info(response.toString());
                         room = DBlayer.findRoom(player);
                         break;
@@ -93,18 +95,21 @@ public class Session extends Thread {
                     case MOVE:
                         response = new ResponseMsg();
                         System.out.println("SET POSITION > " + player.getLogin());
-                        if (GameUtils.checkStep(request.getGameObj(), room.getId(), player.getLogin())) {
-                            DBlayer.setPositions(room.getId(), player.getLogin(), request.getGameObj());
-                            response.setStatus(TypeStatusMsg.OK);
+                        try {
+                            if (GameUtils.checkStep(request.getGameObjModel(), room.getId(), player.getLogin())) {
+                                DBlayer.setPositions(room.getId(), player.getLogin(), request.getGameObjModel());
+                                response.setStatus(TypeStatusMsg.OK);
+                                out.println(mapper.writeValueAsString(response));
+                                LOGGER.info(response.toString());
+                                break;
+                            }
+                        } catch (GameException e) {
+                            response.setStatus(TypeStatusMsg.ERROR);
+                            response.setMsg(e.getMessage());
                             out.println(mapper.writeValueAsString(response));
                             LOGGER.info(response.toString());
                             break;
                         }
-                        response.setStatus(TypeStatusMsg.ERROR);
-                        response.setMsg("invalid step");
-                        out.println(mapper.writeValueAsString(response));
-                        LOGGER.info(response.toString());
-                        break;
                     case STATUS:
                         response = new ResponseMsg();
                         LOGGER.info("GET STATUS > " + player.getLogin());
@@ -120,9 +125,12 @@ public class Session extends Thread {
                         break;
                     case POSITIONS:
                         response = new ResponseMsg(TypeStatusMsg.GAME_OBJ);
-                        response.setGameObjs(DBlayer.getGameObjList(room.getId()));
+                        response.setGameObjModels(DBlayer.getGameObjList(room.getId()));
                         out.println(mapper.writeValueAsString(response));
                         LOGGER.info(response.toString());
+                        break;
+                    case FINISH:
+                        response = new ResponseMsg(TypeStatusMsg.WIN);
                         break;
                     default:
                         LOGGER.info("invalid msg");
@@ -153,5 +161,9 @@ public class Session extends Thread {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public boolean isAuthorization() {
+        return isAuthorization;
     }
 }
