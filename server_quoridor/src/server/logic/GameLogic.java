@@ -13,11 +13,11 @@ import java.sql.SQLException;
  */
 public interface GameLogic {
 
-    boolean startGame();
+    boolean startGame() throws SQLException;
     void endGame();
     void checkStep();
     boolean checkStep(GameObjModel nextStepObj, int roomId, String login) throws SQLException, GameException;
-    void addPlayer(PlayerModel player, Session session);
+    void addPlayer(PlayerModel player, Session session) throws SQLException;
     void checkFinish();
     void checkQueue();
     RoomModel findRoom();

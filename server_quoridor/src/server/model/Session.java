@@ -6,7 +6,6 @@ import server.domain.PlayerModel;
 import server.domain.RoomModel;
 import server.exception.GameException;
 import server.logic.GameLogic;
-import server.logic.GameUtils;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -86,6 +85,9 @@ public class Session extends Thread {
             DBlayer.closeGame(room.getId(), player.getLogin());
             LOGGER.log(Level.SEVERE, "Error", e);
         } catch (SQLException e) {
+            close(e.getMessage());
+            DBlayer.closeGame(room.getId(), player.getLogin());
+            LOGGER.log(Level.SEVERE, "Error", e);
         }
 
     }
@@ -111,9 +113,7 @@ public class Session extends Thread {
 
         switch (valueOf(request.getMsgType())) {
             case LOGIN:
-                String login = request.getLogin();
-                String password = request.getPassword();
-                this.player = login != null ? DBlayer.authorization(login, password) : null;
+                player = request.getLogin() != null ? DBlayer.authorization(request.getLogin(), request.getPassword()) : null;
                 if (player == null) {
                     response = new ResponseMsg(TypeStatusMsg.ERROR, "ACCESS DENIED");
                     out.println(mapper.writeValueAsString(response));
@@ -124,10 +124,7 @@ public class Session extends Thread {
                 response = new ResponseMsg(TypeStatusMsg.OK);
                 authorization = true;
                 game.addPlayer(player, this);
-
-//                FIXME remove this
-                room = DBlayer.findRoom(player);
-
+                room = game.findRoom();
                 break;
             case START:
                 response = new ResponseMsg();
@@ -136,7 +133,6 @@ public class Session extends Thread {
                 } else {
                     response.setStatus(TypeStatusMsg.WAIT);
                 }
-
                 break;
             case MOVE:
                 game.checkQueue();
@@ -147,7 +143,7 @@ public class Session extends Thread {
                 response = new ResponseMsg();
                 System.out.println("SET POSITION > " + player.getLogin());
                 try {
-                    if (GameUtils.checkStep(request.getGameObjModel(), room.getId(), player.getLogin())) {
+                    if (game.checkStep(request.getGameObjModel(), room.getId(), player.getLogin())) {
                         DBlayer.setPositions(room.getId(), player.getLogin(), request.getGameObjModel());
                         response.setStatus(TypeStatusMsg.OK);
                         break;
@@ -160,13 +156,11 @@ public class Session extends Thread {
             case STATUS:
                 response = new ResponseMsg();
                 LOGGER.info("GET STATUS > " + player.getLogin());
-                if (!DBlayer.statusRoom(room.getId())) {
+                if (game.isClose()) {
                     response.setStatus(TypeStatusMsg.CLOSE);
                     break;
                 }
                 response.setStatus(TypeStatusMsg.valueOf(DBlayer.getPlayerStatus(room.getId(), player.getLogin())));
-                out.println(mapper.writeValueAsString(response));
-                LOGGER.info(response.toString());
                 break;
             case POSITIONS:
                 response = new ResponseMsg(TypeStatusMsg.GAME_OBJ);

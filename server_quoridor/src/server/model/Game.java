@@ -25,6 +25,7 @@ public class Game implements GameLogic {
     private boolean isGame = false;
     private boolean run = false;
     private boolean closeGame = false;
+    private int limitPlayer = 2;
 
     public Game() throws SQLException {
         this.players = new ArrayList<>();
@@ -34,14 +35,14 @@ public class Game implements GameLogic {
 
 
     @Override
-    public boolean startGame() {
-        try {
-            DBlayer.initGameObj(this.room);
-
-        } catch (SQLException e) {
-
+    public boolean startGame() throws SQLException {
+        if (room.getCountPlayer() == limitPlayer){
+            room.setStatus("START");
+            DBlayer.updateStatusRoom(room);
+            return true;
+        } else {
+            return false;
         }
-        return false;
     }
 
     @Override
@@ -123,9 +124,11 @@ public class Game implements GameLogic {
 
 
     @Override
-    public void addPlayer(PlayerModel player, Session session) {
+    public void addPlayer(PlayerModel player, Session session) throws SQLException {
         this.sessionMap.put(player, session);
         this.players.add(player);
+        DBlayer.addPlayerFromGame(room, player, "WAIT", 0);
+        room.setCountPlayer(room.getCountPlayer() + 1);
     }
 
     @Override
@@ -140,8 +143,7 @@ public class Game implements GameLogic {
 
     @Override
     public RoomModel findRoom() {
-
-        return null;
+        return this.room;
     }
 
     @Override
@@ -159,4 +161,7 @@ public class Game implements GameLogic {
         return closeGame;
     }
 
+    public void setLimitPlayer(int limitPlayer) {
+        this.limitPlayer = limitPlayer;
+    }
 }

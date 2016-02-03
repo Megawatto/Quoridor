@@ -2,6 +2,7 @@ package server.model;
 
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.annotate.JsonSetter;
+import server.domain.GameObjModel;
 
 /**
  * Created by Valera on 29.01.2016.

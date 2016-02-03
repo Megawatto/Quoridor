@@ -112,8 +112,8 @@ public class DBlayer {
         System.out.println("CLOSE GAME room =" + roomId + " user=" + login);
     }
 
-    public synchronized static boolean statusRoom(int roomId) throws SQLException {
-        RoomModel room = rooms.queryForId(roomId);
+    public synchronized static boolean statusRoom(RoomModel room) throws SQLException {
+        rooms.update(room);
         return room.getStatus().equals("START");
     }
 
@@ -160,23 +160,23 @@ public class DBlayer {
     }
 
     public static List<GameObjModel> getGameObjList(int roomId) throws SQLException {
-        List<server.domain.GameObjModel> plObj = gameObjs.queryForEq("room_id", roomId);
+        List<GameObjModel> plObj = gameObjs.queryForEq("room_id", roomId);
         List<GameObjModel> result = new ArrayList<>();
-        for (GameObjModel gameObjModelModel : plObj) {
-            result.add(new GameObjModel(gameObjModelModel));
+        for (GameObjModel gameObjModel : plObj) {
+            result.add(gameObjModel);
         }
         System.out.println(result);
         return result;
     }
 
     public static GameObjModel getPlayerObj(String login, boolean opponent) throws SQLException {
-        server.domain.GameObjModel objModel;
+        GameObjModel objModel;
         if (!opponent) {
             objModel = gameObjs.queryBuilder().where().eq("player_login", login).and().eq("type", "player").queryForFirst();
         } else {
             objModel = gameObjs.queryBuilder().where().ne("player_login", login).and().eq("type", "player").queryForFirst();
         }
-        return new GameObjModel(objModel);
+        return objModel;
     }
 
     public static void setStatusPlayer(TypeStatusMsg statusMsg) {
@@ -212,6 +212,15 @@ public class DBlayer {
         rooms.create(newRoom);
         System.out.println("CREATE NEW ROOM ID =" + newRoom.getId());
         return newRoom;
+    }
+
+    public static void addPlayerFromGame(RoomModel room, PlayerModel player, String status, int queue) throws SQLException {
+        GameModel model = new GameModel(room, player, status, queue);
+        games.create(model);
+    }
+
+    public static void updateStatusRoom(RoomModel room) throws SQLException {
+        rooms.update(room);
     }
 }
 
