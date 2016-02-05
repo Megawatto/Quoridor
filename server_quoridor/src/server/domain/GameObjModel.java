@@ -2,6 +2,8 @@ package server.domain;
 
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
+import server.domain.DTO.GameObj;
+import server.model.Game;
 import server.utils.Point;
 
 /**
@@ -49,6 +51,12 @@ public class GameObjModel {
         this.x2 = point.getX2();
         this.y = point.getY();
         this.y2 = point.getY2();
+    }
+
+    public GameObjModel(GameModel game, GameObj obj) {
+        this.roomId = game.getRoom();
+        this.playerLogin = game.getPlayer();
+        setObj(obj);
     }
 
     public GameObjModel(RoomModel roomId, PlayerModel playerLogin, String type, Integer x, Integer y, Integer x2, Integer y2) {
@@ -125,4 +133,12 @@ public class GameObjModel {
         this.y2 = y2;
     }
 
+
+    public void setObj(GameObj obj) {
+        this.type = obj.getType();
+        this.x = obj.getX();
+        this.y = obj.getY();
+        this.x2 = obj.getX2();
+        this.y2 = obj.getY2();
+    }
 }

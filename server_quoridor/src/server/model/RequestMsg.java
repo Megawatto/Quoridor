@@ -2,7 +2,7 @@ package server.model;
 
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.annotate.JsonSetter;
-import server.domain.GameObjModel;
+import server.domain.DTO.GameObj;
 
 /**
  * Created by Valera on 29.01.2016.
@@ -19,7 +19,7 @@ public class RequestMsg {
     private String password;
 
     @JsonProperty
-    private GameObjModel gameObjModel;
+    private GameObj gameObj;
 
     public RequestMsg() {
     }
@@ -57,12 +57,12 @@ public class RequestMsg {
         this.password = password;
     }
 
-    public GameObjModel getGameObjModel() {
-        return gameObjModel;
+    public GameObj getGameObj() {
+        return gameObj;
     }
 
-    public void setGameObjModel(GameObjModel gameObjModel) {
-        this.gameObjModel = gameObjModel;
+    public void setGameObj(GameObj gameObj) {
+        this.gameObj = gameObj;
     }
 
     @Override
@@ -71,7 +71,7 @@ public class RequestMsg {
                 "msgType='" + msgType + '\'' +
                 ", login='" + login + '\'' +
                 ", password='" + password + '\'' +
-                ", gameObj=" + gameObjModel +
+                ", gameObj=" + gameObj +
                 '}';
     }
 }

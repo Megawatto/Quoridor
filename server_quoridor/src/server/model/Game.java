@@ -1,5 +1,6 @@
 package server.model;
 
+import server.domain.DTO.GameObj;
 import server.domain.GameModel;
 import server.domain.GameObjModel;
 import server.domain.PlayerModel;
@@ -37,10 +38,10 @@ public class Game implements GameLogic {
 
     @Override
     public synchronized boolean startGame() throws SQLException {
-        if (room.getStatus().equals("START")){
+        if (room.getStatus().equals("START")) {
             return true;
         }
-        if (room.getCountPlayer() == limitPlayer){
+        if (room.getCountPlayer() == limitPlayer) {
             room.setStatus("START");
             DBlayer.initGameObj(room);
             DBlayer.updateStatusRoom(room);
@@ -56,7 +57,7 @@ public class Game implements GameLogic {
     }
 
     @Override
-    public boolean checkStep(GameObjModel nextStepObj, GameModel game) throws SQLException, GameException {
+    public boolean checkStep(GameObj nextStepObj, GameModel game) throws SQLException, GameException {
 
         List<GameObjModel> gameObjModelList = DBlayer.getGameObjList(game.getRoom().getId());
         GameObjModel player = DBlayer.getPlayerObj(game.getPlayer().getLogin(), false);
@@ -134,25 +135,25 @@ public class Game implements GameLogic {
     }
 
     @Override
-    public boolean checkFinish(GameModel game, GameObjModel gom) {
-        switch (game.getQueue()){
+    public boolean checkFinish(GameModel game, GameObj gameObj) {
+        switch (game.getQueue()) {
             case 1:
-                if (gom.getY() == 9){
+                if (gameObj.getY() == 9) {
                     return true;
                 }
                 break;
             case 2:
-                if (gom.getY() == 1){
+                if (gameObj.getY() == 1) {
                     return true;
                 }
                 break;
             case 3:
-                if (gom.getX() == 9){
+                if (gameObj.getX() == 9) {
                     return true;
                 }
                 break;
             case 4:
-                if (gom.getX() == 1){
+                if (gameObj.getX() == 1) {
                     return true;
                 }
                 break;
@@ -165,9 +166,9 @@ public class Game implements GameLogic {
     @Override
     public void checkQueue(PlayerModel player) throws GameException {
         PlayerModel next = queue.peek();
-        if (!next.getLogin().equals(player.getLogin())){
+        if (!next.getLogin().equals(player.getLogin())) {
             throw new GameException("someone else's turn");
-        }else {
+        } else {
             queue.poll();
             queue.add(player);
         }

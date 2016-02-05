@@ -9,6 +9,7 @@ import server.domain.RoomModel;
 import server.exception.GameException;
 import server.logic.GameLogic;
 import server.utils.GameObjUtils;
+
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -137,10 +138,10 @@ public class Session extends Thread {
                 gameLogic.checkQueue(this.player);
                 System.out.println("SET POSITION > " + player.getLogin());
                 try {
-                    if (gameLogic.checkStep(request.getGameObjModel(), game)) {
-                        DBlayer.setPositions(game.getRoom().getId(), player.getLogin(), request.getGameObjModel());
-                        if (request.getGameObjModel().getType().equals(GameObjUtils.TYPE_OBJ_PLAYER)) {
-                            if (gameLogic.checkFinish(game, request.getGameObjModel())) {
+                    if (gameLogic.checkStep(request.getGameObj(), game)) {
+                        DBlayer.setPositions(game, request.getGameObj());
+                        if (request.getGameObj().getType().equals(GameObjUtils.TYPE_OBJ_PLAYER)) {
+                            if (gameLogic.checkFinish(game, request.getGameObj())) {
                                 response.setStatus(TypeStatusMsg.WIN);
                                 break;
                             }

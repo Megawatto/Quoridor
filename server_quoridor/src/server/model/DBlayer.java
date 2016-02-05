@@ -7,6 +7,7 @@ import com.j256.ormlite.stmt.DeleteBuilder;
 import com.j256.ormlite.stmt.UpdateBuilder;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
+import server.domain.DTO.GameObj;
 import server.domain.GameModel;
 import server.domain.GameObjModel;
 import server.domain.PlayerModel;
@@ -135,25 +136,25 @@ public class DBlayer {
         }
     }
 
-    public static void setPositions(int roomId, String login, GameObjModel gameObjModel) throws SQLException {
+    public static void setPositions(GameModel game, GameObj gameObj) throws SQLException {
 
-        if (gameObjModel.getType().equals(GameObjUtils.TYPE_OBJ_PLAYER)) {
+        if (gameObj.getType().equals(GameObjUtils.TYPE_OBJ_PLAYER)) {
             GameObjModel newGameObjModel = gameObjs.queryBuilder()
                     .where()
-                    .eq(GameObjModel.ROOM_ID_FIELD_NAME, roomId)
+                    .eq(GameObjModel.ROOM_ID_FIELD_NAME, game.getRoom().getId())
                     .and()
-                    .eq(GameObjModel.PLAYER_LOGIN_FIELD_NAME, login)
+                    .eq(GameObjModel.PLAYER_LOGIN_FIELD_NAME, game.getPlayer().getLogin())
                     .and()
                     .eq("type", "player").queryForFirst();
             gameObjs.update(newGameObjModel);
         } else {
-            gameObjs.create(gameObjModel);
+            gameObjs.create(new GameObjModel(game, gameObj));
         }
         UpdateBuilder<GameModel, Integer> gameUpdateBuilder = games.updateBuilder();
-        gameUpdateBuilder.updateColumnValue("status", "WAIT").where().eq("room_id", roomId).and().eq("player_login", login);
+        gameUpdateBuilder.updateColumnValue("status", "WAIT").where().eq("room_id", game.getRoom()).and().eq("player_login", game.getPlayer());
         gameUpdateBuilder.update();
         gameUpdateBuilder = games.updateBuilder();
-        gameUpdateBuilder.updateColumnValue("status", "MOVE").where().eq("room_id", roomId).and().ne("player_login", login);
+        gameUpdateBuilder.updateColumnValue("status", "MOVE").where().eq("room_id", game.getRoom()).and().ne("player_login", game.getPlayer());
         gameUpdateBuilder.update();
         System.out.println("UPDATE POSITON");
 

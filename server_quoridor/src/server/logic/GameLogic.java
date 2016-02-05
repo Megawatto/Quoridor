@@ -1,5 +1,6 @@
 package server.logic;
 
+import server.domain.DTO.GameObj;
 import server.domain.GameModel;
 import server.domain.GameObjModel;
 import server.domain.PlayerModel;
@@ -18,11 +19,11 @@ public interface GameLogic {
 
     void endGame();
 
-    boolean checkStep(GameObjModel nextStepObj, GameModel game) throws SQLException, GameException;
+    boolean checkStep(GameObj nextStepObj, GameModel game) throws SQLException, GameException;
 
     GameModel addPlayer(PlayerModel player, Session session) throws SQLException;
 
-    boolean checkFinish(GameModel game, GameObjModel gameObjModel);
+    boolean checkFinish(GameModel game, GameObj gameObj);
 
     void checkQueue(PlayerModel player) throws GameException;
 
