@@ -19,7 +19,7 @@ public class GameModel {
     private Integer id;
 
     @DatabaseField(columnName = ROOM_ID_FIELD_NAME, foreign = true)
-    private RoomModel roomId;
+    private RoomModel room;
 
     @DatabaseField(columnName = PLAYER_LOGIN_FIELD_NAME, foreign = true)
     private PlayerModel player;
@@ -33,15 +33,15 @@ public class GameModel {
     public GameModel() {
     }
 
-    public GameModel(RoomModel roomId, PlayerModel player, String status, Integer queue) {
-        this.roomId = roomId;
+    public GameModel(RoomModel room, PlayerModel player, String status, Integer queue) {
+        this.room = room;
         this.player = player;
         this.status = status;
         this.queue = queue;
     }
 
-    public GameModel(RoomModel roomId, PlayerModel player, String status) {
-        this.roomId = roomId;
+    public GameModel(RoomModel room, PlayerModel player, String status) {
+        this.room = room;
         this.player = player;
         this.status = status;
     }
@@ -54,12 +54,12 @@ public class GameModel {
         this.id = id;
     }
 
-    public RoomModel getRoomId() {
-        return roomId;
+    public RoomModel getRoom() {
+        return room;
     }
 
-    public void setRoomId(RoomModel roomId) {
-        this.roomId = roomId;
+    public void setRoom(RoomModel room) {
+        this.room = room;
     }
 
     public PlayerModel getPlayer() {

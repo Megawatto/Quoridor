@@ -1,25 +1,15 @@
-package server.domain;
-
-import com.j256.ormlite.field.DatabaseField;
-import com.j256.ormlite.table.DatabaseTable;
-import org.codehaus.jackson.annotate.JsonIgnore;
+package quoridor.model;
 
 /**
  * Created by Valera on 28.01.2016.
  */
 
-@DatabaseTable(tableName = "player")
 public class PlayerModel {
 
-    @DatabaseField(id = true)
     private String login;
 
-    @JsonIgnore
-    @DatabaseField
     private String password;
 
-    @JsonIgnore
-    @DatabaseField
     private boolean active;
 
     public PlayerModel() {

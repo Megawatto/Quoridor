@@ -1,14 +1,17 @@
 package server.model;
 
+import server.domain.GameModel;
 import server.domain.GameObjModel;
 import server.domain.PlayerModel;
 import server.domain.RoomModel;
 import server.exception.GameException;
 import server.logic.GameLogic;
+import server.utils.GameObjUtils;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -19,25 +22,27 @@ import java.util.Queue;
 public class Game implements GameLogic {
 
     private RoomModel room;
-    private List<PlayerModel> players;
-    private Queue queue;
+    private Queue<PlayerModel> queue;
     private Map<PlayerModel, Session> sessionMap;
-    private boolean isGame = false;
     private boolean run = false;
     private boolean closeGame = false;
     private int limitPlayer = 2;
 
     public Game() throws SQLException {
-        this.players = new ArrayList<>();
         this.sessionMap = new HashMap<>();
+        this.queue = new LinkedList<>();
         this.room = createRoom();
     }
 
 
     @Override
-    public boolean startGame() throws SQLException {
+    public synchronized boolean startGame() throws SQLException {
+        if (room.getStatus().equals("START")){
+            return true;
+        }
         if (room.getCountPlayer() == limitPlayer){
             room.setStatus("START");
+            DBlayer.initGameObj(room);
             DBlayer.updateStatusRoom(room);
             return true;
         } else {
@@ -51,16 +56,11 @@ public class Game implements GameLogic {
     }
 
     @Override
-    public void checkStep() {
+    public boolean checkStep(GameObjModel nextStepObj, GameModel game) throws SQLException, GameException {
 
-    }
-
-    @Override
-    public boolean checkStep(GameObjModel nextStepObj, int roomId, String login) throws SQLException, GameException {
-
-        List<GameObjModel> gameObjModelList = DBlayer.getGameObjList(roomId);
-        GameObjModel player = DBlayer.getPlayerObj(login, false);
-        GameObjModel opponent = DBlayer.getPlayerObj(login, true);
+        List<GameObjModel> gameObjModelList = DBlayer.getGameObjList(game.getRoom().getId());
+        GameObjModel player = DBlayer.getPlayerObj(game.getPlayer().getLogin(), false);
+        GameObjModel opponent = DBlayer.getPlayerObj(game.getPlayer().getLogin(), true);
         List<GameObjModel> walls = new ArrayList<>();
         for (GameObjModel gameObjModel : gameObjModelList) {
             if (gameObjModel.getType().equals("wall")) walls.add(gameObjModel);
@@ -124,21 +124,53 @@ public class Game implements GameLogic {
 
 
     @Override
-    public void addPlayer(PlayerModel player, Session session) throws SQLException {
+    public GameModel addPlayer(PlayerModel player, Session session) throws SQLException {
         this.sessionMap.put(player, session);
-        this.players.add(player);
-        DBlayer.addPlayerFromGame(room, player, "WAIT", 0);
-        room.setCountPlayer(room.getCountPlayer() + 1);
+        this.queue.add(player);
+        GameModel game = DBlayer.addPlayerFromGame(room, player, GameObjUtils.getStatus(TypeStatusMsg.WAIT), queue.size());
+        room.setCountPlayer(this.queue.size());
+        DBlayer.updateStatusRoom(room);
+        return game;
     }
 
     @Override
-    public void checkFinish() {
-
+    public boolean checkFinish(GameModel game, GameObjModel gom) {
+        switch (game.getQueue()){
+            case 1:
+                if (gom.getY() == 9){
+                    return true;
+                }
+                break;
+            case 2:
+                if (gom.getY() == 1){
+                    return true;
+                }
+                break;
+            case 3:
+                if (gom.getX() == 9){
+                    return true;
+                }
+                break;
+            case 4:
+                if (gom.getX() == 1){
+                    return true;
+                }
+                break;
+            default:
+                break;
+        }
+        return false;
     }
 
     @Override
-    public void checkQueue() {
-
+    public void checkQueue(PlayerModel player) throws GameException {
+        PlayerModel next = queue.peek();
+        if (!next.getLogin().equals(player.getLogin())){
+            throw new GameException("someone else's turn");
+        }else {
+            queue.poll();
+            queue.add(player);
+        }
     }
 
     @Override

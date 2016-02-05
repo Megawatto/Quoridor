@@ -1,6 +1,7 @@
 package quoridor.model;
 
 import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.annotate.JsonSetter;
 
 /**
  * Created by Valera on 29.01.2016.
@@ -17,7 +18,7 @@ public class RequestMsg {
     private String password;
 
     @JsonProperty
-    private GameObj gameObj;
+    private GameObjModel gameObjModel;
 
     public RequestMsg() {
     }
@@ -30,6 +31,7 @@ public class RequestMsg {
         return msgType;
     }
 
+    @JsonSetter
     public void setMsgType(String msgType) {
         this.msgType = msgType;
     }
@@ -54,12 +56,12 @@ public class RequestMsg {
         this.password = password;
     }
 
-    public GameObj getGameObj() {
-        return gameObj;
+    public GameObjModel getGameObjModel() {
+        return gameObjModel;
     }
 
-    public void setGameObj(GameObj gameObj) {
-        this.gameObj = gameObj;
+    public void setGameObjModel(GameObjModel gameObjModel) {
+        this.gameObjModel = gameObjModel;
     }
 
     @Override
@@ -68,7 +70,7 @@ public class RequestMsg {
                 "msgType='" + msgType + '\'' +
                 ", login='" + login + '\'' +
                 ", password='" + password + '\'' +
-                ", gameObj=" + gameObj +
+                ", gameObj=" + gameObjModel +
                 '}';
     }
 }

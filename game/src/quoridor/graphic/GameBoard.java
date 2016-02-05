@@ -3,6 +3,7 @@ package quoridor.graphic;
 import org.json.simple.parser.ParseException;
 import quoridor.Connector;
 import quoridor.model.GameObj;
+import quoridor.model.GameObjModel;
 
 import javax.swing.*;
 import java.awt.*;
@@ -17,7 +18,7 @@ import java.io.IOException;
 public final class GameBoard extends JPanel {
 
     private final Connector connector;
-    private java.util.List<GameObj> gameObjs;
+    private java.util.List<GameObjModel> gameObjs;
 
     private final int SIZE_CELL = 25;
     private final int SHIFT = 25;
@@ -96,8 +97,8 @@ public final class GameBoard extends JPanel {
                 super.mouseReleased(e);
                 if (active) {
                     if (Math.abs(startWallX - e.getX()) <= SIZE_CELL && Math.abs(startWallY - e.getY()) <= SIZE_CELL) {
-                        GameObj nextStep = new GameObj();
-                        nextStep.setLogin(LOGIN);
+                        GameObjModel nextStep = new GameObjModel();
+                        nextStep.getPlayerLogin().setLogin(LOGIN);
                         nextStep.setType(TYPE_PLAYER);
                         nextStep.setX(calcPositionX(e.getX()));
                         nextStep.setY(calcPositionY(e.getY()));
@@ -115,8 +116,8 @@ public final class GameBoard extends JPanel {
                     } else {
                         endWallX = 0;
                         endWallY = 0;
-                        GameObj nextStep = new GameObj();
-                        nextStep.setLogin(LOGIN);
+                        GameObjModel nextStep = new GameObjModel();
+                        nextStep.getPlayerLogin().setLogin(LOGIN);
                         nextStep.setType(TYPE_WALL);
                         convertCoords(startWallX, startWallY, endWallX, endWallY);
                         nextStep.setX(calcPositionX(startWallX));
@@ -164,9 +165,9 @@ public final class GameBoard extends JPanel {
             }
         }
         try {
-            for (GameObj gameObj : gameObjs) {
+            for (GameObjModel gameObj : gameObjs) {
                 if (gameObj.getType().equals(TYPE_PLAYER)) {
-                    if (gameObj.getLogin().equals(LOGIN)) {
+                    if (gameObj.getPlayerLogin().getLogin().equals(LOGIN)) {
                         g.setColor(Color.blue);
                         g.fillOval(gameObj.getX() * SIZE_CELL, gameObj.getY() * SIZE_CELL, SIZE_CELL, SIZE_CELL);
                     } else {

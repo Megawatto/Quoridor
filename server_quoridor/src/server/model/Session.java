@@ -2,11 +2,13 @@ package server.model;
 
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
+import server.domain.GameModel;
 import server.domain.PlayerModel;
 import server.domain.RoomModel;
 import server.exception.GameException;
 import server.logic.GameLogic;
-
+import server.utils.GameObjUtils;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -28,7 +30,6 @@ public class Session extends Thread {
     private Socket socket;
     private static final Logger LOGGER = Logger.getLogger(Session.class.getName());
     //    TODO Переделать ид на объекты
-    private RoomModel room;
     private PlayerModel player;
     private ResponseMsg response;
     private RequestMsg request;
@@ -36,7 +37,8 @@ public class Session extends Thread {
     private PrintWriter out;
     private ObjectMapper mapper;
     private boolean authorization = false;
-    private GameLogic game;
+    private GameLogic gameLogic;
+    private GameModel game;
 
     public Session(Socket socket) {
         this.socket = socket;
@@ -45,13 +47,13 @@ public class Session extends Thread {
             this.out = new PrintWriter(new BufferedOutputStream(socket.getOutputStream()), true);
             this.mapper = new ObjectMapper();
             this.mapper.configure(JsonParser.Feature.AUTO_CLOSE_SOURCE, false);
+            this.mapper.setSerializationInclusion(JsonSerialize.Inclusion.NON_NULL);
         } catch (IOException e) {
         }
     }
 
     public static Session createSession(Socket socket) {
         LOGGER.info("New session " + socket);
-
         return new Session(socket);
     }
 
@@ -74,20 +76,22 @@ public class Session extends Thread {
                 LOGGER.info(response.toString());
             }
             System.out.println("END");
-            DBlayer.closeGame(room.getId(), player.getLogin());
+            DBlayer.closeGame(game.getRoom().getId(), player.getLogin());
 
         } catch (IOException e) {
             close(e.getMessage());
-            DBlayer.closeGame(room.getId(), player.getLogin());
+            DBlayer.closeGame(game.getRoom().getId(), player.getLogin());
             LOGGER.log(Level.SEVERE, e.getMessage(), e);
         } catch (RuntimeException e) {
             close(e.getMessage());
-            DBlayer.closeGame(room.getId(), player.getLogin());
+            DBlayer.closeGame(game.getRoom().getId(), player.getLogin());
             LOGGER.log(Level.SEVERE, "Error", e);
         } catch (SQLException e) {
             close(e.getMessage());
-            DBlayer.closeGame(room.getId(), player.getLogin());
+            DBlayer.closeGame(game.getRoom().getId(), player.getLogin());
             LOGGER.log(Level.SEVERE, "Error", e);
+        } catch (GameException e) {
+            e.printStackTrace();
         }
 
     }
@@ -104,12 +108,7 @@ public class Session extends Thread {
         }
     }
 
-    public void authorization() throws IOException {
-
-    }
-
-
-    public ResponseMsg messageHandling(RequestMsg request) throws IOException, SQLException {
+    public ResponseMsg messageHandling(RequestMsg request) throws IOException, SQLException, GameException {
 
         switch (valueOf(request.getMsgType())) {
             case LOGIN:
@@ -123,28 +122,29 @@ public class Session extends Thread {
                 }
                 response = new ResponseMsg(TypeStatusMsg.OK);
                 authorization = true;
-                game.addPlayer(player, this);
-                room = game.findRoom();
+                this.game = gameLogic.addPlayer(player, this);
                 break;
             case START:
                 response = new ResponseMsg();
-                if (game.startGame()) {
+                if (gameLogic.startGame()) {
                     response.setStatus(TypeStatusMsg.START);
                 } else {
                     response.setStatus(TypeStatusMsg.WAIT);
                 }
                 break;
             case MOVE:
-                game.checkQueue();
-                game.checkFinish();
-                game.checkStep();
-
-
                 response = new ResponseMsg();
+                gameLogic.checkQueue(this.player);
                 System.out.println("SET POSITION > " + player.getLogin());
                 try {
-                    if (game.checkStep(request.getGameObjModel(), room.getId(), player.getLogin())) {
-                        DBlayer.setPositions(room.getId(), player.getLogin(), request.getGameObjModel());
+                    if (gameLogic.checkStep(request.getGameObjModel(), game)) {
+                        DBlayer.setPositions(game.getRoom().getId(), player.getLogin(), request.getGameObjModel());
+                        if (request.getGameObjModel().getType().equals(GameObjUtils.TYPE_OBJ_PLAYER)) {
+                            if (gameLogic.checkFinish(game, request.getGameObjModel())) {
+                                response.setStatus(TypeStatusMsg.WIN);
+                                break;
+                            }
+                        }
                         response.setStatus(TypeStatusMsg.OK);
                         break;
                     }
@@ -156,15 +156,15 @@ public class Session extends Thread {
             case STATUS:
                 response = new ResponseMsg();
                 LOGGER.info("GET STATUS > " + player.getLogin());
-                if (game.isClose()) {
+                if (gameLogic.isClose()) {
                     response.setStatus(TypeStatusMsg.CLOSE);
                     break;
                 }
-                response.setStatus(TypeStatusMsg.valueOf(DBlayer.getPlayerStatus(room.getId(), player.getLogin())));
+                response.setStatus(TypeStatusMsg.valueOf(DBlayer.getPlayerStatus(game.getRoom().getId(), player.getLogin())));
                 break;
             case POSITIONS:
                 response = new ResponseMsg(TypeStatusMsg.GAME_OBJ);
-                response.setGameObjModels(DBlayer.getGameObjList(room.getId()));
+                response.setGameObjModels(DBlayer.getGameObjList(game.getRoom().getId()));
                 break;
             case FINISH:
                 response = new ResponseMsg(TypeStatusMsg.WIN);
@@ -175,8 +175,8 @@ public class Session extends Thread {
         return response;
     }
 
-    public void setGame(Game game) {
-        this.game = game;
+    public void setGameLogic(Game gameLogic) {
+        this.gameLogic = gameLogic;
     }
 
     public boolean isAuthorization() {
@@ -188,6 +188,6 @@ public class Session extends Thread {
     }
 
     public RoomModel getRoom() {
-        return room;
+        return game.getRoom();
     }
 }

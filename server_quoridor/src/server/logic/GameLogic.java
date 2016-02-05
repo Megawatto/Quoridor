@@ -1,5 +1,6 @@
 package server.logic;
 
+import server.domain.GameModel;
 import server.domain.GameObjModel;
 import server.domain.PlayerModel;
 import server.domain.RoomModel;
@@ -14,14 +15,22 @@ import java.sql.SQLException;
 public interface GameLogic {
 
     boolean startGame() throws SQLException;
+
     void endGame();
-    void checkStep();
-    boolean checkStep(GameObjModel nextStepObj, int roomId, String login) throws SQLException, GameException;
-    void addPlayer(PlayerModel player, Session session) throws SQLException;
-    void checkFinish();
-    void checkQueue();
+
+    boolean checkStep(GameObjModel nextStepObj, GameModel game) throws SQLException, GameException;
+
+    GameModel addPlayer(PlayerModel player, Session session) throws SQLException;
+
+    boolean checkFinish(GameModel game, GameObjModel gameObjModel);
+
+    void checkQueue(PlayerModel player) throws GameException;
+
     RoomModel findRoom();
+
     RoomModel createRoom() throws SQLException;
+
     boolean isRun();
+
     boolean isClose();
 }

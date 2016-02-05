@@ -11,7 +11,7 @@ import server.domain.GameModel;
 import server.domain.GameObjModel;
 import server.domain.PlayerModel;
 import server.domain.RoomModel;
-import server.utils.StartGameObjUtils;
+import server.utils.GameObjUtils;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -117,7 +117,7 @@ public class DBlayer {
         return room.getStatus().equals("START");
     }
 
-    public synchronized static void initGameObj(RoomModel room) throws SQLException {
+    public static void initGameObj(RoomModel room) throws SQLException {
         List<GameModel> gameModels = games.queryForEq(GameModel.ROOM_ID_FIELD_NAME, room.getId());
         Collections.sort(gameModels, new Comparator<GameModel>() {
             @Override
@@ -127,13 +127,17 @@ public class DBlayer {
         });
 
         for (GameModel gameModel : gameModels) {
-            gameObjs.create(StartGameObjUtils.createStartPlayerObj(room, gameModel.getPlayer(), gameModel.getQueue()));
+            if (gameModel.getQueue() == 1){
+                gameModel.setStatus("MOVE");
+                games.update(gameModel);
+            }
+            gameObjs.create(GameObjUtils.createStartPlayerObj(room, gameModel.getPlayer(), gameModel.getQueue()));
         }
     }
 
     public static void setPositions(int roomId, String login, GameObjModel gameObjModel) throws SQLException {
 
-        if (gameObjModel.getType().equals(StartGameObjUtils.TYPE_OBJ_PLAYER)) {
+        if (gameObjModel.getType().equals(GameObjUtils.TYPE_OBJ_PLAYER)) {
             GameObjModel newGameObjModel = gameObjs.queryBuilder()
                     .where()
                     .eq(GameObjModel.ROOM_ID_FIELD_NAME, roomId)
@@ -210,13 +214,15 @@ public class DBlayer {
     public static RoomModel createRoom() throws SQLException {
         RoomModel newRoom = new RoomModel("test", "WAIT");
         rooms.create(newRoom);
+        newRoom.setCountPlayer(0);
         System.out.println("CREATE NEW ROOM ID =" + newRoom.getId());
         return newRoom;
     }
 
-    public static void addPlayerFromGame(RoomModel room, PlayerModel player, String status, int queue) throws SQLException {
+    public static GameModel addPlayerFromGame(RoomModel room, PlayerModel player, String status, int queue) throws SQLException {
         GameModel model = new GameModel(room, player, status, queue);
         games.create(model);
+        return model;
     }
 
     public static void updateStatusRoom(RoomModel room) throws SQLException {

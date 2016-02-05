@@ -2,8 +2,10 @@ package quoridor;
 
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
 import org.json.simple.parser.ParseException;
 import quoridor.model.GameObj;
+import quoridor.model.GameObjModel;
 import quoridor.model.RequestMsg;
 import quoridor.model.ResponseMsg;
 import quoridor.model.TypeRequestMsg;
@@ -38,6 +40,7 @@ public class Connector {
         this.out = new PrintWriter(new BufferedOutputStream(conn.getOutputStream()), true);
         this.in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
         this.mapper = new ObjectMapper();
+        this.mapper.setSerializationInclusion(JsonSerialize.Inclusion.NON_NULL);
         this.password = password;
         this.login = login;
 
@@ -53,9 +56,9 @@ public class Connector {
         return response.getStatus();
     }
 
-    public void sendPosition(GameObj gameObj) throws IOException, ParseException {
+    public void sendPosition(GameObjModel gameObj) throws IOException, ParseException {
         request = new RequestMsg(TypeRequestMsg.MOVE);
-        request.setGameObj(gameObj);
+        request.setGameObjModel(gameObj);
         sendMsg(request);
         response = mapper.readValue(in, ResponseMsg.class);
         System.out.println(response);
@@ -64,12 +67,12 @@ public class Connector {
         }
     }
 
-    public List<GameObj> getGameObj() throws IOException, ParseException {
+    public List<GameObjModel> getGameObj() throws IOException, ParseException {
         request = new RequestMsg(TypeRequestMsg.POSITIONS);
         sendMsg(request);
         response = mapper.readValue(in, ResponseMsg.class);
         System.out.println(response);
-        return response.getGameObjs();
+        return response.getGameObjModels();
     }
 
     private void sendMsg(RequestMsg requestMsg) throws IOException {

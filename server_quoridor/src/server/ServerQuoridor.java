@@ -56,7 +56,7 @@ public class ServerQuoridor {
 
                     for (Game game : games) {
                         if (!game.isRun() && !game.isClose()) {
-                            session.setGame(game);
+                            session.setGameLogic(game);
                             session.start();
                         }
                     }

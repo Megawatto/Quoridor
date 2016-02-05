@@ -3,11 +3,12 @@ package server.utils;
 import server.domain.GameObjModel;
 import server.domain.PlayerModel;
 import server.domain.RoomModel;
+import server.model.TypeStatusMsg;
 
 /**
  * Created by Valera on 02.02.2016.
  */
-public class StartGameObjUtils {
+public class GameObjUtils {
     public static final Point PLAYER_ONE_POSITION = new Point(5, 1, 1);
     public static final Point PLAYER_TWO_POSITION = new Point(5, 9, 2);
     public static final Point PLAYER_THREE_POSITION = new Point(1, 5, 3);
@@ -15,6 +16,7 @@ public class StartGameObjUtils {
 
     public static final String TYPE_OBJ_PLAYER = "player";
     public static final String TYPE_OBJ_WALL = "wall";
+
 
     public static GameObjModel createStartPlayerObj(RoomModel room, PlayerModel player, int numberPlayer) {
         GameObjModel result;
@@ -35,5 +37,9 @@ public class StartGameObjUtils {
                 throw new NullPointerException("NO QUEUE NUMBER");
         }
         return result;
+    }
+
+    public static String getStatus(TypeStatusMsg statusMsg) {
+        return statusMsg.name();
     }
 }

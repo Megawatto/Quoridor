@@ -4,6 +4,7 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.annotate.JsonSetter;
 import server.domain.GameObjModel;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
