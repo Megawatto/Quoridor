@@ -218,7 +218,6 @@ public final class GameBoard extends JPanel {
 
     private void endGame(String status) {
         JOptionPane.showMessageDialog(new Frame(), status, "END GAME", JOptionPane.INFORMATION_MESSAGE);
-        connector.endGame();
         connector.close();
         System.exit(0);
     }
