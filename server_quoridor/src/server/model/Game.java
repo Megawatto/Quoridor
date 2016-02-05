@@ -45,6 +45,7 @@ public class Game implements GameLogic {
             room.setStatus("START");
             DBlayer.initGameObj(room);
             DBlayer.updateStatusRoom(room);
+            this.run = true;
             return true;
         } else {
             return false;
@@ -60,14 +61,14 @@ public class Game implements GameLogic {
     public boolean checkStep(GameObj nextStepObj, GameModel game) throws SQLException, GameException {
 
         List<GameObjModel> gameObjModelList = DBlayer.getGameObjList(game.getRoom().getId());
-        GameObjModel player = DBlayer.getPlayerObj(game.getPlayer().getLogin(), false);
-        GameObjModel opponent = DBlayer.getPlayerObj(game.getPlayer().getLogin(), true);
+        GameObj player = new GameObj(DBlayer.getPlayerObj(game.getPlayer().getLogin(), false));
+        GameObj opponent = new GameObj(DBlayer.getPlayerObj(game.getPlayer().getLogin(), true));
         List<GameObjModel> walls = new ArrayList<>();
         for (GameObjModel gameObjModel : gameObjModelList) {
-            if (gameObjModel.getType().equals("wall")) walls.add(gameObjModel);
+            if (gameObjModel.getType().equals(GameObjUtils.TYPE_OBJ_WALL)) walls.add(gameObjModel);
         }
 
-        if (nextStepObj.getType().equals("wall")) {
+        if (nextStepObj.getType().equals(GameObjUtils.TYPE_OBJ_WALL)) {
             double result = (int) Math.sqrt(Math.pow(nextStepObj.getX() - nextStepObj.getX2(), 2) + (Math.pow(nextStepObj.getY() - nextStepObj.getY2(), 2)));
             int checkPosX = Math.abs(nextStepObj.getX() - nextStepObj.getX2());
             int checkPosY = Math.abs(nextStepObj.getY() - nextStepObj.getY2());

@@ -128,7 +128,7 @@ public class DBlayer {
         });
 
         for (GameModel gameModel : gameModels) {
-            if (gameModel.getQueue() == 1){
+            if (gameModel.getQueue() == 1) {
                 gameModel.setStatus("MOVE");
                 games.update(gameModel);
             }
@@ -137,15 +137,16 @@ public class DBlayer {
     }
 
     public static void setPositions(GameModel game, GameObj gameObj) throws SQLException {
-
+        GameObjModel newGameObjModel;
         if (gameObj.getType().equals(GameObjUtils.TYPE_OBJ_PLAYER)) {
-            GameObjModel newGameObjModel = gameObjs.queryBuilder()
+            newGameObjModel = gameObjs.queryBuilder()
                     .where()
                     .eq(GameObjModel.ROOM_ID_FIELD_NAME, game.getRoom().getId())
                     .and()
                     .eq(GameObjModel.PLAYER_LOGIN_FIELD_NAME, game.getPlayer().getLogin())
                     .and()
                     .eq("type", "player").queryForFirst();
+            newGameObjModel.setObj(gameObj);
             gameObjs.update(newGameObjModel);
         } else {
             gameObjs.create(new GameObjModel(game, gameObj));

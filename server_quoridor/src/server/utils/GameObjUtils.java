@@ -1,9 +1,13 @@
 package server.utils;
 
+import server.domain.DTO.GameObj;
 import server.domain.GameObjModel;
 import server.domain.PlayerModel;
 import server.domain.RoomModel;
 import server.model.TypeStatusMsg;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by Valera on 02.02.2016.
@@ -41,5 +45,13 @@ public class GameObjUtils {
 
     public static String getStatus(TypeStatusMsg statusMsg) {
         return statusMsg.name();
+    }
+
+    public static List<GameObj> getGameObjList(List<GameObjModel> gameObjModel) {
+        List<GameObj> gameObjs = new ArrayList<>();
+        for (GameObjModel objModel : gameObjModel) {
+            gameObjs.add(new GameObj(objModel));
+        }
+        return gameObjs;
     }
 }

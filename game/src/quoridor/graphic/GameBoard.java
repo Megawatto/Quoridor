@@ -54,7 +54,7 @@ public final class GameBoard extends JPanel {
                             closeParty();
                         }
                         System.out.println("WAIT STEP");
-                        Thread.sleep(1500);
+                        Thread.sleep(5000);
                     }
                     active = true;
                     gameObjs = connector.getGameObj();

@@ -135,20 +135,19 @@ public class Session extends Thread {
                 break;
             case MOVE:
                 response = new ResponseMsg();
-                gameLogic.checkQueue(this.player);
-                System.out.println("SET POSITION > " + player.getLogin());
                 try {
-                    if (gameLogic.checkStep(request.getGameObj(), game)) {
-                        DBlayer.setPositions(game, request.getGameObj());
-                        if (request.getGameObj().getType().equals(GameObjUtils.TYPE_OBJ_PLAYER)) {
-                            if (gameLogic.checkFinish(game, request.getGameObj())) {
-                                response.setStatus(TypeStatusMsg.WIN);
-                                break;
-                            }
+                    gameLogic.checkStep(request.getGameObj(), game);
+                    gameLogic.checkQueue(this.player);
+                    System.out.println("SET POSITION > " + player.getLogin());
+                    DBlayer.setPositions(game, request.getGameObj());
+                    if (request.getGameObj().getType().equals(GameObjUtils.TYPE_OBJ_PLAYER)) {
+                        if (gameLogic.checkFinish(game, request.getGameObj())) {
+                            response.setStatus(TypeStatusMsg.WIN);
+                            break;
                         }
-                        response.setStatus(TypeStatusMsg.OK);
-                        break;
                     }
+                    response.setStatus(TypeStatusMsg.OK);
+                    break;
                 } catch (GameException e) {
                     response.setStatus(TypeStatusMsg.ERROR);
                     response.setMsg(e.getMessage());
@@ -165,7 +164,7 @@ public class Session extends Thread {
                 break;
             case POSITIONS:
                 response = new ResponseMsg(TypeStatusMsg.GAME_OBJ);
-                response.setGameObjModels(DBlayer.getGameObjList(game.getRoom().getId()));
+                response.setGameObjs(GameObjUtils.getGameObjList(DBlayer.getGameObjList(game.getRoom().getId())));
                 break;
             case FINISH:
                 response = new ResponseMsg(TypeStatusMsg.WIN);

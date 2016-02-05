@@ -1,6 +1,7 @@
 package server.domain.DTO;
 
 import org.json.simple.JSONObject;
+import server.domain.GameObjModel;
 
 /**
  * Created by Valera on 26.01.2016.
@@ -17,12 +18,13 @@ public class GameObj {
     public GameObj() {
     }
 
-    public GameObj(JSONObject object) {
-        this.type = (String) object.get("type");
-        this.x = Math.toIntExact((Long) object.get("x"));
-        this.y = Math.toIntExact((Long) object.get("y"));
-        this.x2 = Math.toIntExact((Long) object.get("x2"));
-        this.y2 = Math.toIntExact((Long) object.get("y2"));
+    public GameObj(GameObjModel object) {
+        this.login = object.getPlayerLogin().getLogin();
+        this.type = object.getType();
+        this.x = object.getX();
+        this.y = object.getY();
+        this.x2 = object.getX2();
+        this.y2 = object.getY2();
     }
 
     public String getType() {
@@ -83,5 +85,20 @@ public class GameObj {
                 ", x2=" + x2 +
                 ", y2=" + y2 +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        GameObj gameObj = (GameObj) o;
+
+        if (x != gameObj.x) return false;
+        if (y != gameObj.y) return false;
+        if (x2 != gameObj.x2) return false;
+        if (y2 != gameObj.y2) return false;
+        return type.equals(gameObj.type);
+
     }
 }
