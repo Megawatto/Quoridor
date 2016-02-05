@@ -18,7 +18,7 @@ public class RequestMsg {
     private String password;
 
     @JsonProperty
-    private GameObjModel gameObjModel;
+    private GameObj gameObj;
 
     public RequestMsg() {
     }
@@ -56,12 +56,12 @@ public class RequestMsg {
         this.password = password;
     }
 
-    public GameObjModel getGameObjModel() {
-        return gameObjModel;
+    public GameObj getGameObj() {
+        return gameObj;
     }
 
-    public void setGameObjModel(GameObjModel gameObjModel) {
-        this.gameObjModel = gameObjModel;
+    public void setGameObj(GameObj gameObj) {
+        this.gameObj = gameObj;
     }
 
     @Override
@@ -70,7 +70,7 @@ public class RequestMsg {
                 "msgType='" + msgType + '\'' +
                 ", login='" + login + '\'' +
                 ", password='" + password + '\'' +
-                ", gameObj=" + gameObjModel +
+                ", gameObj=" + gameObj +
                 '}';
     }
 }

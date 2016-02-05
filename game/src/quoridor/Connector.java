@@ -5,7 +5,6 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 import org.json.simple.parser.ParseException;
 import quoridor.model.GameObj;
-import quoridor.model.GameObjModel;
 import quoridor.model.RequestMsg;
 import quoridor.model.ResponseMsg;
 import quoridor.model.TypeRequestMsg;
@@ -56,9 +55,9 @@ public class Connector {
         return response.getStatus();
     }
 
-    public void sendPosition(GameObjModel gameObj) throws IOException, ParseException {
+    public void sendPosition(GameObj gameObj) throws IOException, ParseException {
         request = new RequestMsg(TypeRequestMsg.MOVE);
-        request.setGameObjModel(gameObj);
+        request.setGameObj(gameObj);
         sendMsg(request);
         response = mapper.readValue(in, ResponseMsg.class);
         System.out.println(response);
@@ -67,12 +66,12 @@ public class Connector {
         }
     }
 
-    public List<GameObjModel> getGameObj() throws IOException, ParseException {
+    public List<GameObj> getGameObj() throws IOException, ParseException {
         request = new RequestMsg(TypeRequestMsg.POSITIONS);
         sendMsg(request);
         response = mapper.readValue(in, ResponseMsg.class);
         System.out.println(response);
-        return response.getGameObjModels();
+        return response.getGameObjs();
     }
 
     private void sendMsg(RequestMsg requestMsg) throws IOException {

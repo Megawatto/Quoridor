@@ -17,7 +17,7 @@ public class ResponseMsg {
     private String msg;
 
     @JsonProperty
-    private List<GameObjModel> gameObjModels;
+    private List<GameObj> gameObjs;
 
     public ResponseMsg() {
     }
@@ -44,12 +44,12 @@ public class ResponseMsg {
         this.status = status.name();
     }
 
-    public List<GameObjModel> getGameObjModels() {
-        return gameObjModels;
+    public List<GameObj> getGameObjs() {
+        return gameObjs;
     }
 
-    public void setGameObjModels(List<GameObjModel> gameObjModels) {
-        this.gameObjModels = gameObjModels;
+    public void setGameObjs(List<GameObj> gameObjs) {
+        this.gameObjs = gameObjs;
     }
 
     public String getMsg() {
@@ -65,7 +65,7 @@ public class ResponseMsg {
         return "ResponseMsg{" +
                 "status='" + status + '\'' +
                 ", msg='" + msg + '\'' +
-                ", gameObjs=" + gameObjModels +
+                ", gameObjs=" + gameObjs +
                 '}';
     }
 }
