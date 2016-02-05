@@ -5,7 +5,6 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 import server.domain.GameModel;
 import server.domain.PlayerModel;
-import server.domain.RoomModel;
 import server.exception.GameException;
 import server.logic.GameLogic;
 import server.utils.GameObjUtils;
@@ -37,7 +36,6 @@ public class Session extends Thread {
     private BufferedReader in;
     private PrintWriter out;
     private ObjectMapper mapper;
-    private boolean authorization = false;
     private GameLogic gameLogic;
     private GameModel game;
 
@@ -50,6 +48,8 @@ public class Session extends Thread {
             this.mapper.configure(JsonParser.Feature.AUTO_CLOSE_SOURCE, false);
             this.mapper.setSerializationInclusion(JsonSerialize.Inclusion.NON_NULL);
         } catch (IOException e) {
+            LOGGER.log(Level.WARNING, "FAILED CREATE SOCKET");
+            close(e.getMessage());
         }
     }
 
@@ -83,15 +83,13 @@ public class Session extends Thread {
             close(e.getMessage());
             DBlayer.closeGame(game.getRoom().getId(), player.getLogin());
             LOGGER.log(Level.SEVERE, e.getMessage(), e);
-        } catch (RuntimeException e) {
-            close(e.getMessage());
-            DBlayer.closeGame(game.getRoom().getId(), player.getLogin());
-            LOGGER.log(Level.SEVERE, "Error", e);
         } catch (SQLException e) {
             close(e.getMessage());
             DBlayer.closeGame(game.getRoom().getId(), player.getLogin());
             LOGGER.log(Level.SEVERE, "Error", e);
         } catch (GameException e) {
+            close(e.getMessage());
+        } catch (RuntimeException e){
             e.printStackTrace();
         }
 
@@ -105,7 +103,7 @@ public class Session extends Thread {
             socket.close();
             System.out.println("Close session");
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, e.getMessage());
         }
     }
 
@@ -119,10 +117,9 @@ public class Session extends Thread {
                     out.println(mapper.writeValueAsString(response));
                     LOGGER.info(response.toString());
                     System.out.println("ACCESS DENIED");
-                    throw new RuntimeException("ACCESS DENIED");
+                    throw new GameException("ACCESS DENIED");
                 }
                 response = new ResponseMsg(TypeStatusMsg.OK);
-                authorization = true;
                 this.game = gameLogic.addPlayer(player, this);
                 break;
             case START:
@@ -143,6 +140,7 @@ public class Session extends Thread {
                     if (request.getGameObj().getType().equals(GameObjUtils.TYPE_OBJ_PLAYER)) {
                         if (gameLogic.checkFinish(game, request.getGameObj())) {
                             response.setStatus(TypeStatusMsg.WIN);
+                            gameLogic.endGame();
                             break;
                         }
                     }
@@ -177,17 +175,5 @@ public class Session extends Thread {
 
     public void setGameLogic(Game gameLogic) {
         this.gameLogic = gameLogic;
-    }
-
-    public boolean isAuthorization() {
-        return authorization;
-    }
-
-    public PlayerModel getPlayer() {
-        return player;
-    }
-
-    public RoomModel getRoom() {
-        return game.getRoom();
     }
 }

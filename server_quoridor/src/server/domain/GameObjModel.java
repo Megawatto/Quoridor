@@ -15,6 +15,7 @@ public class GameObjModel {
 
     public static final String ROOM_ID_FIELD_NAME = "room_id";
     public static final String PLAYER_LOGIN_FIELD_NAME = "player_login";
+    public static final String TYPE_FIELD_NAME = "type";
 
     @DatabaseField(generatedId = true)
     private Integer id;

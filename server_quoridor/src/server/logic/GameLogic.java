@@ -17,17 +17,15 @@ public interface GameLogic {
 
     boolean startGame() throws SQLException;
 
-    void endGame();
+    void endGame() throws SQLException;
 
     boolean checkStep(GameObj nextStepObj, GameModel game) throws SQLException, GameException;
 
     GameModel addPlayer(PlayerModel player, Session session) throws SQLException;
 
-    boolean checkFinish(GameModel game, GameObj gameObj);
+    boolean checkFinish(GameModel game, GameObj gameObj) throws SQLException;
 
     void checkQueue(PlayerModel player) throws GameException;
-
-    RoomModel findRoom();
 
     RoomModel createRoom() throws SQLException;
 

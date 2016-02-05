@@ -2,6 +2,7 @@ package server.domain;
 
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
+import server.model.TypeStatusMsg;
 
 /**
  * Created by Valera on 28.01.2016.
@@ -76,6 +77,10 @@ public class GameModel {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public void setStatus(TypeStatusMsg status) {
+        this.status = status.name();
     }
 
     public Integer getQueue() {

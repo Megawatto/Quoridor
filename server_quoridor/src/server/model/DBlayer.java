@@ -35,10 +35,14 @@ public class DBlayer {
 
     }
 
-    public static void createConnectFromDB() {
+    public static void createConnectFromDB(String f) {
         try {
             Class.forName("org.sqlite.JDBC");
-            connectionSource = new JdbcConnectionSource("jdbc:sqlite:C:/Users/Valera/IdeaProjects/Quoridor/server_quoridor/test.db");
+            String pathFromDB = "jdbc:sqlite:C:/Users/Valera/IdeaProjects/Quoridor/server_quoridor/test.db";
+            if (f != null && !f.equals("")) {
+                pathFromDB = f;
+            }
+            connectionSource = new JdbcConnectionSource(pathFromDB);
             rooms = DaoManager.createDao(connectionSource, RoomModel.class);
             games = DaoManager.createDao(connectionSource, GameModel.class);
             players = DaoManager.createDao(connectionSource, PlayerModel.class);
@@ -77,18 +81,6 @@ public class DBlayer {
         }
     }
 
-
-    public static RoomModel findRoom(PlayerModel player) throws SQLException {
-        RoomModel room = rooms.queryBuilder().where().lt("count_pl", 2).queryForFirst();
-        games.create(new GameModel(room, players.queryForId(player.getLogin()), room.getCountPlayer() == 0 ? "MOVE" : "WAIT", room.getCountPlayer()));
-        room.setCountPlayer(games.queryForEq("room_id", room.getId()).size());
-        if (room.getCountPlayer() == 2) {
-            room.setStatus("START");
-        }
-        rooms.update(room);
-        return room;
-    }
-
     public static void closeGame(int roomId, String login) {
         try {
 
@@ -113,11 +105,6 @@ public class DBlayer {
         System.out.println("CLOSE GAME room =" + roomId + " user=" + login);
     }
 
-    public synchronized static boolean statusRoom(RoomModel room) throws SQLException {
-        rooms.update(room);
-        return room.getStatus().equals("START");
-    }
-
     public static void initGameObj(RoomModel room) throws SQLException {
         List<GameModel> gameModels = games.queryForEq(GameModel.ROOM_ID_FIELD_NAME, room.getId());
         Collections.sort(gameModels, new Comparator<GameModel>() {
@@ -129,7 +116,7 @@ public class DBlayer {
 
         for (GameModel gameModel : gameModels) {
             if (gameModel.getQueue() == 1) {
-                gameModel.setStatus("MOVE");
+                gameModel.setStatus(TypeStatusMsg.MOVE.name());
                 games.update(gameModel);
             }
             gameObjs.create(GameObjUtils.createStartPlayerObj(room, gameModel.getPlayer(), gameModel.getQueue()));
@@ -145,19 +132,28 @@ public class DBlayer {
                     .and()
                     .eq(GameObjModel.PLAYER_LOGIN_FIELD_NAME, game.getPlayer().getLogin())
                     .and()
-                    .eq("type", "player").queryForFirst();
+                    .eq(GameObjModel.TYPE_FIELD_NAME, GameObjUtils.TYPE_OBJ_PLAYER).queryForFirst();
             newGameObjModel.setObj(gameObj);
             gameObjs.update(newGameObjModel);
         } else {
             gameObjs.create(new GameObjModel(game, gameObj));
         }
+//        FIXME Изменить на одиночный объект
         UpdateBuilder<GameModel, Integer> gameUpdateBuilder = games.updateBuilder();
-        gameUpdateBuilder.updateColumnValue("status", "WAIT").where().eq("room_id", game.getRoom()).and().eq("player_login", game.getPlayer());
+        gameUpdateBuilder.updateColumnValue(GameModel.STATUS_FIELD_NAME, TypeStatusMsg.WAIT.name())
+                .where()
+                .eq(GameModel.ROOM_ID_FIELD_NAME, game.getRoom())
+                .and()
+                .eq(GameModel.PLAYER_LOGIN_FIELD_NAME, game.getPlayer());
         gameUpdateBuilder.update();
         gameUpdateBuilder = games.updateBuilder();
-        gameUpdateBuilder.updateColumnValue("status", "MOVE").where().eq("room_id", game.getRoom()).and().ne("player_login", game.getPlayer());
+        gameUpdateBuilder.updateColumnValue(GameModel.STATUS_FIELD_NAME, TypeStatusMsg.MOVE.name())
+                .where()
+                .eq(GameModel.ROOM_ID_FIELD_NAME, game.getRoom())
+                .and()
+                .ne(GameModel.PLAYER_LOGIN_FIELD_NAME, game.getPlayer());
         gameUpdateBuilder.update();
-        System.out.println("UPDATE POSITON");
+        System.out.println("UPDATE POSITIONS");
 
     }
 
@@ -185,17 +181,22 @@ public class DBlayer {
         return objModel;
     }
 
-    public static void setStatusPlayer(TypeStatusMsg statusMsg) {
+    public static void setStatusPlayer(TypeStatusMsg statusMsg, GameModel game) throws SQLException {
         switch (statusMsg) {
             case MOVE:
+                game.setStatus(TypeStatusMsg.MOVE);
                 break;
             case WAIT:
+                game.setStatus(TypeStatusMsg.WAIT);
                 break;
             case WIN:
+                game.setStatus(TypeStatusMsg.WIN);
                 break;
             case LOSE:
+                game.setStatus(TypeStatusMsg.LOSE);
                 break;
         }
+        games.update(game);
     }
 
     public static void clearData() {
@@ -229,6 +230,17 @@ public class DBlayer {
 
     public static void updateStatusRoom(RoomModel room) throws SQLException {
         rooms.update(room);
+    }
+
+    public static void endGame(GameModel game) throws SQLException {
+        List<GameModel> gameModels = games.queryForEq(GameModel.ROOM_ID_FIELD_NAME, game.getRoom());
+        for (GameModel gameModel : gameModels) {
+            if (gameModel.getPlayer().getLogin().equals(game.getPlayer().getLogin())) {
+                DBlayer.setStatusPlayer(TypeStatusMsg.WIN, gameModel);
+            } else {
+                DBlayer.setStatusPlayer(TypeStatusMsg.LOSE, gameModel);
+            }
+        }
     }
 }
 

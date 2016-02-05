@@ -53,8 +53,12 @@ public class Game implements GameLogic {
     }
 
     @Override
-    public void endGame() {
-
+    public void endGame() throws SQLException {
+        this.queue.clear();
+        this.sessionMap.clear();
+        this.room.setCountPlayer(0);
+        DBlayer.updateStatusRoom(room);
+        this.run = false;
     }
 
     @Override
@@ -136,25 +140,29 @@ public class Game implements GameLogic {
     }
 
     @Override
-    public boolean checkFinish(GameModel game, GameObj gameObj) {
+    public boolean checkFinish(GameModel game, GameObj gameObj) throws SQLException {
         switch (game.getQueue()) {
             case 1:
                 if (gameObj.getY() == 9) {
+                    DBlayer.endGame(game);
                     return true;
                 }
                 break;
             case 2:
                 if (gameObj.getY() == 1) {
+                    DBlayer.endGame(game);
                     return true;
                 }
                 break;
             case 3:
                 if (gameObj.getX() == 9) {
+                    DBlayer.endGame(game);
                     return true;
                 }
                 break;
             case 4:
                 if (gameObj.getX() == 1) {
+                    DBlayer.endGame(game);
                     return true;
                 }
                 break;
@@ -173,11 +181,6 @@ public class Game implements GameLogic {
             queue.poll();
             queue.add(player);
         }
-    }
-
-    @Override
-    public RoomModel findRoom() {
-        return this.room;
     }
 
     @Override
