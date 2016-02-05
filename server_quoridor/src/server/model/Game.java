@@ -16,6 +16,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.logging.Logger;
 
 /**
  * Created by Valera on 02.02.2016.
@@ -28,6 +29,8 @@ public class Game implements GameLogic {
     private boolean run = false;
     private boolean closeGame = false;
     private int limitPlayer = 2;
+
+    private static final Logger log = Logger.getLogger(Game.class.getName());
 
     public Game() throws SQLException {
         this.sessionMap = new HashMap<>();
@@ -59,6 +62,7 @@ public class Game implements GameLogic {
         this.room.setCountPlayer(0);
         DBlayer.updateStatusRoom(room);
         this.run = false;
+        log.info("END GAME room = " + room);
     }
 
     @Override

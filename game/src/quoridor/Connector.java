@@ -108,6 +108,11 @@ public class Connector {
         }
     }
 
+    public void endGame(){
+        out.println(new RequestMsg(TypeRequestMsg.CLOSE));
+        System.out.println("SEND CLOSE" );
+    }
+
     public void close() {
         try {
             in.close();

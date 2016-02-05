@@ -83,12 +83,10 @@ public class Session extends Thread {
             close(e.getMessage());
             DBlayer.closeGame(game.getRoom().getId(), player.getLogin());
             LOGGER.log(Level.SEVERE, e.getMessage(), e);
-        } catch (SQLException e) {
+        } catch (SQLException | GameException e) {
             close(e.getMessage());
             DBlayer.closeGame(game.getRoom().getId(), player.getLogin());
             LOGGER.log(Level.SEVERE, "Error", e);
-        } catch (GameException e) {
-            close(e.getMessage());
         } catch (RuntimeException e){
             e.printStackTrace();
         }
@@ -164,9 +162,9 @@ public class Session extends Thread {
                 response = new ResponseMsg(TypeStatusMsg.GAME_OBJ);
                 response.setGameObjs(GameObjUtils.getGameObjList(DBlayer.getGameObjList(game.getRoom().getId())));
                 break;
-            case FINISH:
-                response = new ResponseMsg(TypeStatusMsg.WIN);
-                break;
+            case CLOSE:
+                LOGGER.info("Close Game from client");
+                throw new GameException("Close game");
             default:
                 LOGGER.info("invalid msg");
         }

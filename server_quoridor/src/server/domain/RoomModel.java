@@ -61,4 +61,14 @@ public class RoomModel {
     public void setStatus(String status) {
         this.status = status;
     }
+
+    @Override
+    public String toString() {
+        return "RoomModel{" +
+                "id=" + id +
+                ", title='" + title + '\'' +
+                ", countPlayer=" + countPlayer +
+                ", status='" + status + '\'' +
+                '}';
+    }
 }

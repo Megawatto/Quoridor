@@ -3,6 +3,7 @@ package quoridor.graphic;
 import org.json.simple.parser.ParseException;
 import quoridor.Connector;
 import quoridor.model.GameObj;
+import quoridor.model.TypeStatusMsg;
 
 import javax.swing.*;
 import java.awt.*;
@@ -40,6 +41,7 @@ public final class GameBoard extends JPanel {
         this.connector = connector;
         this.active = connector.getStatus().equals("MOVE");
 
+
         final Runnable getAsynStatus = new Runnable() {
             @Override
             public void run() {
@@ -53,8 +55,15 @@ public final class GameBoard extends JPanel {
                         if (msg.equals("CLOSE")) {
                             closeParty();
                         }
-                        System.out.println("WAIT STEP");
-                        Thread.sleep(5000);
+
+                        if (msg.equals(TypeStatusMsg.WIN.name())) {
+                            endGame(msg);
+                        }
+
+                        if (msg.equals(TypeStatusMsg.LOSE.name())) {
+                            endGame(msg);
+                        }
+                        Thread.sleep(1000);
                     }
                     active = true;
                     gameObjs = connector.getGameObj();
@@ -203,6 +212,13 @@ public final class GameBoard extends JPanel {
 
     private void closeParty() {
         JOptionPane.showMessageDialog(new Frame(), "Close Party", "END GAME", JOptionPane.INFORMATION_MESSAGE);
+        connector.close();
+        System.exit(0);
+    }
+
+    private void endGame(String status) {
+        JOptionPane.showMessageDialog(new Frame(), status, "END GAME", JOptionPane.INFORMATION_MESSAGE);
+        connector.endGame();
         connector.close();
         System.exit(0);
     }
